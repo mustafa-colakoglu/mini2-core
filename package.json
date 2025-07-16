@@ -3,11 +3,12 @@
 		"test": "npm run test"
 	},
 	"main": "app.ts",
+	"type": "module",
 	"keywords": [],
 	"license": "ISC",
 	"description": "",
 	"name": "@mini2/core",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"author": "Mustafa Çolakoglu <mustafacolakoglu94@gmail.com> (https://github.com/mustafa-colakoglu)",
 	"dependencies": {
 		"class-transformer": "^0.5.1",
