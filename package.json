@@ -1,12 +1,11 @@
 {
-	"main": "index.js",
 	"scripts": {
 		"test": "npm run test"
 	},
 	"keywords": [],
 	"license": "ISC",
 	"description": "",
-	"name": "@mini",
+	"name": "@mini/core",
 	"version": "1.0.0",
 	"author": "Mustafa Çolakoglu <mustafacolakoglu94@gmail.com> (https://github.com/mustafa-colakoglu)",
 	"dependencies": {
