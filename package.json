@@ -2,11 +2,12 @@
 	"scripts": {
 		"test": "npm run test"
 	},
+	"main": "app.ts",
 	"keywords": [],
 	"license": "ISC",
 	"description": "",
 	"name": "@mini2/core",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"author": "Mustafa Çolakoglu <mustafacolakoglu94@gmail.com> (https://github.com/mustafa-colakoglu)",
 	"dependencies": {
 		"class-transformer": "^0.5.1",
