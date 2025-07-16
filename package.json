@@ -5,7 +5,7 @@
 	"keywords": [],
 	"license": "ISC",
 	"description": "",
-	"name": "@mini/core",
+	"name": "@mini2/core",
 	"version": "1.0.0",
 	"author": "Mustafa Çolakoglu <mustafacolakoglu94@gmail.com> (https://github.com/mustafa-colakoglu)",
 	"dependencies": {
