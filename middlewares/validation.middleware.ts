@@ -21,8 +21,8 @@ const validationMiddleware = <T extends object>(
 		}
 
 		// 🔽 Eğer dosya alanları varsa, req.body'ye dahil et
-		if (value === 'body' && req.files) {
-			const files = req.files as Record<string, Express.Multer.File[]>;
+		if (value === 'body' && (req as any).files) {
+			const files = (req as any).files as Record<string, any[]>;
 			for (const field in files) {
 				if (Array.isArray(files[field]) && files[field].length > 0) {
 					req.body[field] = files[field][0]; // sadece ilk dosyayı al

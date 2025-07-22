@@ -1,5 +1,3 @@
-import { Document } from 'mongoose';
-
 export interface IRepository<IdentifierType, ModelType> {
 	findAll(): Promise<
 		(ModelType & { id: string; createdAt: Date; updatedAt: Date })[]
@@ -23,10 +21,6 @@ export interface IRepository<IdentifierType, ModelType> {
 		limit: number
 	): Promise<(ModelType & { id: string; createdAt: Date; updatedAt: Date })[]>;
 	mapper(
-		model: ModelType &
-			Document<IdentifierType, {}, ModelType> & {
-				createdAt: Date;
-				updatedAt: Date;
-			}
+		model: any
 	): ModelType & { id: string; createdAt: Date; updatedAt: Date };
 }

@@ -45,7 +45,7 @@ export class SwaggerIntegration {
 			schemas: validationMetadatasToSchemas(),
 		};
 
-		controllers.forEach((controller, index) => {
+		controllers.forEach((controller) => {
 			const controllerPath = Reflect.getMetadata(
 				keyOfPath,
 				controller.constructor
@@ -248,7 +248,7 @@ export class SwaggerIntegration {
 		);
 
 		// JSON endpoint for OpenAPI spec
-		app.get(this.options.jsonPath!, (req, res) => {
+		app.get(this.options.jsonPath!, (_req, res) => {
 			res.setHeader('Content-Type', 'application/json');
 			res.send(this.swaggerSpec);
 		});

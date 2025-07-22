@@ -1,15 +1,31 @@
 {
 	"scripts": {
-		"test": "npm run test",
-		"build": "tsc"
+		"test": "jest",
+		"build": "tsc",
+		"clean": "rm -rf dist",
+		"rebuild": "npm run clean && npm run build",
+		"prepublishOnly": "npm run rebuild",
+		"dev": "tsc --watch",
+		"publish": "npm run build && npm publish",
+		"publish:patch": "tsc && npm version patch && npm publish",
+		"publish:minor": "tsc && npm version minor && npm publish",
+		"publish:major": "tsc && npm version major && npm publish"
 	},
-	"main": "dist/app.js",
-	"type": "module",
-	"keywords": [],
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"keywords": [
+		"express",
+		"framework",
+		"mini",
+		"typescript",
+		"api",
+		"middleware",
+		"swagger"
+	],
 	"license": "ISC",
-	"description": "",
+	"description": "Mini Express Framework - Lightweight and modular Express.js framework with TypeScript support",
 	"name": "@mini2/core",
-	"version": "1.0.3",
+	"version": "1.0.7",
 	"author": "Mustafa Çolakoglu <mustafacolakoglu94@gmail.com> (https://github.com/mustafa-colakoglu)",
 	"dependencies": {
 		"class-transformer": "^0.5.1",
@@ -21,5 +37,21 @@
 		"morgan": "^1.10.0",
 		"reflect-metadata": "^0.2.2",
 		"swagger-ui-express": "^5.0.1"
+	},
+	"devDependencies": {
+		"@types/cors": "^2.8.17",
+		"@types/express": "^4.17.21",
+		"@types/morgan": "^1.9.9",
+		"@types/node": "^20.14.9",
+		"@types/swagger-ui-express": "^4.1.6",
+		"typescript": "^5.5.3"
+	},
+	"peerDependencies": {
+		"mongoose": "^8.0.0"
+	},
+	"peerDependenciesMeta": {
+		"mongoose": {
+			"optional": true
+		}
 	}
 }
