@@ -4,7 +4,7 @@
 
 ## ✨ Features
 
-- 🚀 **Decorator-Based Routing**: Easy route definition with decorators like `@Get`, `@Post`
+- 🚀 **Decorator-Based Routing**: Easy route definition with decorators like `@get`, `@post`
 - 📝 **Automatic Swagger Documentation**: API documentation generated automatically
 - 🔧 **Dependency Injection**: Powerful DI container based on InversifyJS
 - 🛡️ **Security Middlewares**: Authentication, authorization, and validation
@@ -16,13 +16,6 @@
 
 ```bash
 npm install @mini2/core
-```
-
-### Peer Dependencies (Optional)
-
-```bash
-# If using MongoDB
-npm install mongoose
 ```
 
 ## 🚀 Quick Start
@@ -52,57 +45,62 @@ await app.afterInit();
 
 ```typescript
 import {
-	Controller,
-	Get,
-	Post,
-	Put,
-	Delete,
-	Body,
-	Param,
-	Query,
+	controller,
+	get,
+	post,
+	put,
+	del,
+	req,
+	res,
 	ResponseBuilder,
-	Authenticated,
-	Authorized,
-	Validation,
+	authenticated,
+	authorized,
+	validate,
 } from '@mini2/core';
 
-@Controller('/api/users')
+@controller('/api/users')
 export class UserController {
-	@Get('/')
-	async getUsers(@Query('page') page: number = 1) {
+	@get('/')
+	async getUsers(@req() request: Request) {
+		const page = Number(request.query.page) || 1;
 		const users = await this.userService.findAll(page);
 		return new ResponseBuilder().ok(users);
 	}
 
-	@Post('/')
-	@Validation({ body: CreateUserDto })
-	async createUser(@Body() userData: CreateUserDto) {
+	@post('/')
+	@validate({ body: CreateUserDto })
+	async createUser(@req() req: Request) {
+		const userData = req.body;
 		const user = await this.userService.create(userData);
 		return new ResponseBuilder().created(user);
 	}
 
-	@Get('/:id')
-	@Authenticated()
-	@Authorized(['user:read'])
-	async getUser(@Param('id') id: string) {
+	@get('/:id')
+	@authenticated()
+	@authorized(['user:read'])
+	async getUser(@req() req: Request) {
+		const id = req.params.id;
 		const user = await this.userService.findById(id);
 		if (!user) throw new NotFoundException({ message: 'User not found' });
 		return new ResponseBuilder().ok(user);
 	}
 
-	@Put('/:id')
-	@Authenticated()
-	@Authorized(['user:write'])
-	@Validation({ body: UpdateUserDto, params: UserParamsDto })
-	async updateUser(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
+	@put('/:id')
+	@authenticated()
+	@authorized(['user:write'])
+	@validate({ body: UpdateUserDto, params: UserParamsDto })
+	async updateUser(@req() req: Request) {
+		const id = req.params.id;
+		const updateData = req.body;
 		const user = await this.userService.update(id, updateData);
 		return new ResponseBuilder().ok(user);
 	}
 
-	@Delete('/:id')
-	@Authenticated()
-	@Authorized(['admin', 'user:delete'])
-	async deleteUser(@Param('id') id: string) {
+	@del('/:id')
+	@authenticated()
+	@authorized(['admin', 'user:delete'])
+	async deleteUser(@req() req: Request) {
+		const id = req.params.id;
 		await this.userService.delete(id);
 		return new ResponseBuilder().ok({ message: 'User deleted successfully' });
 	}
@@ -115,19 +113,19 @@ Decorators are the core feature of @mini2/core, providing a clean and intuitive 
 
 ### 🏷️ Class Decorators
 
-#### **@Controller(path?: string)**
+#### **@controller(path?: string)**
 
 Defines a controller class and optionally sets a base path for all routes in the controller.
 
 ```typescript
-@Controller('/api/v1/users')
+@controller('/api/v1/users')
 export class UserController {
 	// All routes will be prefixed with '/api/v1/users'
 }
 
-@Controller() // No base path
+@controller('') // No base path
 export class HomeController {
-	@Get('/') // Route: '/'
+	@get('/') // Route: '/'
 	home() {
 		/* ... */
 	}
@@ -142,198 +140,143 @@ export class HomeController {
 
 ### 🚦 HTTP Method Decorators
 
-#### **@Get(path: string)**
+#### **@get(path: string)**
 
 Defines a GET route handler.
 
 ```typescript
-@Get('/profile')
-async getProfile() {
+@get('/profile')
+async getProfile(@req() req: Request) {
   // Handles GET /api/users/profile
+  return new ResponseBuilder().ok(req.user);
 }
 
-@Get('/:id/posts')
-async getUserPosts(@Param('id') userId: string) {
+@get('/:id/posts')
+async getUserPosts(@req() req: Request) {
+  const userId = req.params.id;
   // Handles GET /api/users/:id/posts
 }
 
-@Get('/search')
-async searchUsers(@Query('q') query: string) {
+@get('/search')
+async searchUsers(@req() req: Request) {
+  const query = req.query.q;
   // Handles GET /api/users/search?q=searchterm
 }
 ```
 
-#### **@Post(path: string)**
+#### **@post(path: string)**
 
 Defines a POST route handler.
 
 ```typescript
-@Post('/')
-@Validation({ body: CreateUserDto })
-async createUser(@Body() userData: CreateUserDto) {
+@post('/')
+@validate({ body: CreateUserDto })
+async createUser(@req() req: Request) {
   // Handles POST /api/users
+  const userData = req.body;
+  return new ResponseBuilder().created(userData);
 }
 
-@Post('/:id/avatar')
-@Authenticated()
-async uploadAvatar(@Param('id') id: string, @Body() file: any) {
+@post('/:id/avatar')
+@authenticated()
+async uploadAvatar(@req() req: Request) {
+  const id = req.params.id;
   // Handles POST /api/users/:id/avatar
 }
 ```
 
-#### **@Put(path: string)**
+#### **@put(path: string)**
 
 Defines a PUT route handler for full resource updates.
 
 ```typescript
-@Put('/:id')
-@Authenticated()
-@Validation({ body: UpdateUserDto, params: UserParamsDto })
-async updateUser(@Param('id') id: string, @Body() data: UpdateUserDto) {
+@put('/:id')
+@authenticated()
+@validate({ body: UpdateUserDto })
+async updateUser(@req() req: Request) {
+  const id = req.params.id;
+  const data = req.body;
   // Handles PUT /api/users/:id
 }
 ```
 
-#### **@Patch(path: string)**
+#### **@patch(path: string)**
 
 Defines a PATCH route handler for partial resource updates.
 
 ```typescript
-@Patch('/:id')
-@Authenticated()
-@Validation({ body: PartialUserDto })
-async patchUser(@Param('id') id: string, @Body() data: PartialUserDto) {
+@patch('/:id')
+@authenticated()
+@validate({ body: PartialUserDto })
+async patchUser(@req() req: Request) {
+  const id = req.params.id;
+  const data = req.body;
   // Handles PATCH /api/users/:id
 }
 ```
 
-#### **@Delete(path: string)**
+#### **@del(path: string)**
 
-Defines a DELETE route handler.
+Defines a DELETE route handler. Note: uses `@del` instead of `@delete` (reserved keyword).
 
 ```typescript
-@Delete('/:id')
-@Authenticated()
-@Authorized(['admin'])
-async deleteUser(@Param('id') id: string) {
+@del('/:id')
+@authenticated()
+@authorized(['admin'])
+async deleteUser(@req() req: Request) {
+  const id = req.params.id;
   // Handles DELETE /api/users/:id
 }
 ```
 
 ### 📝 Parameter Decorators
 
-Parameter decorators extract data from the HTTP request and inject it into method parameters.
+Parameter decorators inject Express request/response objects into method parameters.
 
-#### **@Param(name?: string)**
+#### **@req()**
 
-Extracts URL parameters from the route path.
+Injects the Express request object.
 
 ```typescript
-@Get('/:id')
-async getUser(@Param('id') id: string) {
-  // Extracts 'id' from URL: /api/users/123 -> id = '123'
-}
-
-@Get('/:userId/posts/:postId')
-async getUserPost(
-  @Param('userId') userId: string,
-  @Param('postId') postId: string
-) {
-  // Extracts multiple parameters
-}
-
-@Get('/:id')
-async getUser(@Param() params: { id: string }) {
-  // Extracts all parameters as an object
+@get('/:id')
+async getUser(@req() request: Request) {
+  const id = request.params.id;
+  const userAgent = request.headers['user-agent'];
+  const query = request.query;
+  // Full access to Express Request object
 }
 ```
 
-#### **@Body()**
+#### **@res()**
 
-Extracts the request body.
-
-```typescript
-@Post('/')
-async createUser(@Body() userData: CreateUserDto) {
-  // Gets the entire request body
-}
-
-@Post('/bulk')
-async createUsers(@Body() users: CreateUserDto[]) {
-  // Handles arrays in request body
-}
-```
-
-#### **@Query(name?: string)**
-
-Extracts query parameters from the URL.
+Injects the Express response object. **Note: If you use @res(), you must handle the response manually.**
 
 ```typescript
-@Get('/search')
-async searchUsers(@Query('q') searchTerm: string) {
-  // From: /api/users/search?q=john -> searchTerm = 'john'
-}
+@get('/download/:file')
+async downloadFile(@req() req: Request, @res() res: Response) {
+  const filename = req.params.file;
 
-@Get('/')
-async getUsers(
-  @Query('page') page: number = 1,
-  @Query('limit') limit: number = 10,
-  @Query('sort') sort?: string
-) {
-  // Multiple query parameters with defaults
-}
+  // Manual response handling required
+  res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+  res.sendFile(path.join(__dirname, 'files', filename));
 
-@Get('/')
-async getUsers(@Query() query: { page: number; limit: number }) {
-  // All query parameters as an object
-}
-```
-
-#### **@Header(name?: string)**
-
-Extracts headers from the request.
-
-```typescript
-@Get('/protected')
-async getProtectedResource(@Header('authorization') auth: string) {
-  // Extracts Authorization header
-}
-
-@Post('/upload')
-async uploadFile(@Header('content-type') contentType: string) {
-  // Extracts Content-Type header
-}
-```
-
-#### **@Req(), @Res(), @Next()**
-
-Injects Express request, response, and next function objects.
-
-```typescript
-@Get('/custom')
-async customHandler(
-  @Req() req: Request,
-  @Res() res: Response,
-  @Next() next: NextFunction
-) {
-  // Direct access to Express objects
-  console.log(req.ip, req.method, req.path);
-  // Note: If you use @Res(), you must handle the response manually
+  // Don't return ResponseBuilder when using @res()
 }
 ```
 
 ### 🛡️ Security Decorators
 
-#### **@Authenticated()**
+#### **@authenticated()**
 
 Ensures the user is authenticated before accessing the route.
 
 ```typescript
-@Get('/profile')
-@Authenticated()
-async getProfile(@Req() req: IAuthenticatedRequest) {
+@get('/profile')
+@authenticated()
+async getProfile(@req() req: Request) {
   // req.authenticated is guaranteed to be true
   // User must be logged in to access this route
+  return new ResponseBuilder().ok(req.user);
 }
 ```
 
@@ -343,22 +286,23 @@ async getProfile(@Req() req: IAuthenticatedRequest) {
 - Usually set by authentication middleware
 - Throws `UnauthorizedException` if not authenticated
 
-#### **@Authorized(permissions: string[])**
+#### **@authorized(permissions: string | string[])**
 
 Checks if the authenticated user has required permissions.
 
 ```typescript
-@Delete('/:id')
-@Authenticated()
-@Authorized(['admin'])
-async deleteUser(@Param('id') id: string) {
+@del('/:id')
+@authenticated()
+@authorized(['admin'])
+async deleteUser(@req() req: Request) {
   // Only users with 'admin' permission can access
+  const id = req.params.id;
 }
 
-@Get('/reports')
-@Authenticated()
-@Authorized(['reports:read', 'admin'])
-async getReports() {
+@get('/reports')
+@authenticated()
+@authorized(['reports:read', 'admin'])
+async getReports(@req() req: Request) {
   // Users need either 'reports:read' OR 'admin' permission
 }
 ```
@@ -372,23 +316,22 @@ async getReports() {
 
 ### ✅ Validation Decorators
 
-#### **@Validation(options: ValidationOptions)**
+#### **@validate(options: ValidationOptions)**
 
 Validates request data using class-validator.
 
 ```typescript
-@Post('/')
-@Validation({
+@post('/')
+@validate({
   body: CreateUserDto,
   params: UserParamsDto,
   query: SearchQueryDto
 })
-async createUser(
-  @Body() userData: CreateUserDto,
-  @Param() params: UserParamsDto,
-  @Query() query: SearchQueryDto
-) {
-  // All parameters are validated and transformed
+async createUser(@req() req: Request) {
+  // req.body, req.params, req.query are validated and transformed
+  const userData = req.body as CreateUserDto; // Typed as CreateUserDto
+  const params = req.params as UserParamsDto;  // Typed as UserParamsDto
+  const query = req.query as SearchQueryDto;    // Typed as SearchQueryDto
 }
 ```
 
@@ -440,7 +383,7 @@ export class SearchQueryDto {
 
 ### 🔧 Custom Middleware Decorators
 
-#### **@Middleware(middleware: RequestHandler | RequestHandler[])**
+#### **@middleware(middleware: RequestHandler)**
 
 Adds custom Express middleware to a specific route.
 
@@ -454,16 +397,13 @@ const limiter = rateLimit({
   max: 100
 });
 
-@Post('/upload')
-@Middleware([uploadMiddleware.single('file'), limiter])
-async uploadFile(@Body() file: Express.Multer.File) {
+@post('/upload')
+@middleware(uploadMiddleware.single('file'))
+@middleware(limiter)
+async uploadFile(@req() req: Request) {
   // Custom middleware applied before route handler
-}
-
-@Get('/limited')
-@Middleware(limiter)
-async limitedEndpoint() {
-  // Rate limiting applied
+  const file = req.file;
+  return new ResponseBuilder().created({ filename: file?.filename });
 }
 ```
 
@@ -472,28 +412,27 @@ async limitedEndpoint() {
 Decorators can be combined and are executed in a specific order:
 
 ```typescript
-@Post('/:id/activate')
-@Middleware(loggingMiddleware)      // 1. Custom middleware first
-@Authenticated()                   // 2. Authentication check
-@Authorized(['admin'])             // 3. Authorization check
-@Validation({
+@post('/:id/activate')
+@middleware(loggingMiddleware)      // 1. Custom middleware first
+@authenticated()                   // 2. Authentication check
+@authorized(['admin'])             // 3. Authorization check
+@validate({
   params: UserParamsDto,           // 4. Validation (params, query, body)
   body: ActivationDto
 })
-async activateUser(
-  @Param('id') id: string,
-  @Body() data: ActivationDto
-) {
+async activateUser(@req() req: Request) {
   // 5. Route handler executes last
+  const id = req.params.id;
+  const data = req.body;
 }
 ```
 
 **Execution Order:**
 
-1. Custom middlewares (from `@Middleware`)
-2. Authentication middleware (from `@Authenticated`)
-3. Authorization middleware (from `@Authorized`)
-4. Validation middleware (from `@Validation`)
+1. Custom middlewares (from `@middleware`)
+2. Authentication middleware (from `@authenticated`)
+3. Authorization middleware (from `@authorized`)
+4. Validation middleware (from `@validate`)
 5. Route handler method
 
 ### 🎯 Advanced Decorator Patterns
@@ -501,23 +440,27 @@ async activateUser(
 #### **Multiple HTTP Methods on Same Path**
 
 ```typescript
-@Controller('/api/users/:id')
+@controller('/api/users/:id')
 export class UserDetailController {
-	@Get('/')
-	async getUser(@Param('id') id: string) {
+	@get('/')
+	async getUser(@req() req: Request) {
 		// GET /api/users/:id
+		const id = req.params.id;
 	}
 
-	@Put('/')
-	@Validation({ body: UpdateUserDto })
-	async updateUser(@Param('id') id: string, @Body() data: UpdateUserDto) {
+	@put('/')
+	@validate({ body: UpdateUserDto })
+	async updateUser(@req() req: Request) {
 		// PUT /api/users/:id
+		const id = req.params.id;
+		const data = req.body;
 	}
 
-	@Delete('/')
-	@Authorized(['admin'])
-	async deleteUser(@Param('id') id: string) {
+	@del('/')
+	@authorized(['admin'])
+	async deleteUser(@req() req: Request) {
 		// DELETE /api/users/:id
+		const id = req.params.id;
 	}
 }
 ```
@@ -526,35 +469,15 @@ export class UserDetailController {
 
 ```typescript
 export class UserController {
-	@Get('/public')
-	async getPublicUsers() {
+	@get('/public')
+	async getPublicUsers(@req() req: Request) {
 		// No authentication required
 	}
 
-	@Get('/private')
-	@Authenticated()
-	async getPrivateUsers() {
+	@get('/private')
+	@authenticated()
+	async getPrivateUsers(@req() req: Request) {
 		// Authentication required
-	}
-}
-```
-
-#### **Decorator Inheritance**
-
-```typescript
-@Controller('/api/admin')
-@Authenticated() // Applied to all methods
-@Authorized(['admin']) // Applied to all methods
-export class AdminController {
-	@Get('/users')
-	async getUsers() {
-		// Inherits @Authenticated and @Authorized
-	}
-
-	@Post('/settings')
-	@Validation({ body: SettingsDto })
-	async updateSettings(@Body() settings: SettingsDto) {
-		// Inherits authentication + adds validation
 	}
 }
 ```
@@ -669,10 +592,10 @@ Class-validator based data validation.
 import { validationMiddleware } from '@mini2/core';
 
 // Usage in controller
-@Post('/users')
-@Validation({ body: CreateUserDto })
-async createUser(@Body() data: CreateUserDto) {
-  // Validated data available here
+@post('/users')
+@validate({ body: CreateUserDto })
+async createUser(@req() req: Request) {
+  // Validated data available in req.body
 }
 ```
 
@@ -690,9 +613,9 @@ Authentication control middleware.
 import { authenticatedMiddleware, IAuthenticatedRequest } from '@mini2/core';
 
 // Usage
-@Get('/profile')
-@Authenticated()
-async getProfile(@Req() req: IAuthenticatedRequest) {
+@get('/profile')
+@authenticated()
+async getProfile(@req() req: IAuthenticatedRequest) {
   // req.authenticated === true is guaranteed
 }
 ```
@@ -705,10 +628,10 @@ Authorization control middleware.
 import { authorizedMiddleware } from '@mini2/core';
 
 // Usage
-@Delete('/admin/users/:id')
-@Authenticated()
-@Authorized(['admin', 'user:delete'])
-async deleteUser(@Param('id') id: string) {
+@del('/admin/users/:id')
+@authenticated()
+@authorized(['admin', 'user:delete'])
+async deleteUser(@req() req: Request) {
   // req.user.permissions is checked
 }
 ```
@@ -742,12 +665,6 @@ return new ResponseBuilder()
 		'Cache-Control': 'no-cache',
 	})
 	.ok({ status: 'processing' });
-
-// Error responses
-return new ResponseBuilder().status(400).ok({
-	error: 'Invalid input',
-	code: 'VALIDATION_ERROR',
-});
 ```
 
 **Methods:**
@@ -795,15 +712,6 @@ throw new HttpException(
 throw new NotFoundException({
 	message: 'User not found',
 	errorId: 404001,
-});
-
-// Validation error
-throw new UnprocessableEntityException({
-	message: 'Validation failed',
-	validationErrors: [
-		{ field: 'age', errors: ['Must be at least 18'] },
-		{ field: 'email', errors: ['Email already exists'] },
-	],
 });
 ```
 
@@ -869,34 +777,6 @@ const swaggerOptions = {
 };
 ```
 
-**Enhanced Documentation:**
-
-```typescript
-// DTOs automatically generate Swagger schemas
-export class CreateUserDto {
-	@ApiProperty({
-		description: 'User email address',
-		example: 'user@example.com',
-	})
-	@IsEmail()
-	email: string;
-
-	@ApiProperty({
-		description: 'User full name',
-		minLength: 3,
-		example: 'John Doe',
-	})
-	@IsString()
-	@MinLength(3)
-	name: string;
-
-	@ApiPropertyOptional({ description: 'User age', minimum: 0, example: 25 })
-	@IsOptional()
-	@IsNumber()
-	age?: number;
-}
-```
-
 ### 📝 TypeScript Support
 
 Full TypeScript support with type-safe API development:
@@ -917,25 +797,12 @@ export class CreateUserDto {
 }
 
 // Type-safe controller methods
-@Post('/users')
-@Validation({ body: CreateUserDto })
-async createUser(@Body() userData: CreateUserDto): Promise<ResponseBuilder<User>> {
+@post('/users')
+@validate({ body: CreateUserDto })
+async createUser(@req() req: Request): Promise<ResponseBuilder<User>> {
+  const userData = req.body as CreateUserDto; // Type-safe after validation
   const user = await this.userService.create(userData);
   return new ResponseBuilder<User>().created(user);
-}
-
-// Generic repository usage
-interface User {
-  name: string;
-  email: string;
-  age?: number;
-}
-
-class UserRepository implements IRepository<string, User> {
-  async create(user: User): Promise<User & { id: string; createdAt: Date; updatedAt: Date }> {
-    // Implementation
-  }
-  // ... other methods
 }
 ```
 
@@ -945,7 +812,7 @@ class UserRepository implements IRepository<string, User> {
 
 ```typescript
 import { RequestHandler } from 'express';
-import { Middleware } from '@mini2/core';
+import { middleware } from '@mini2/core';
 
 // Logging middleware
 const loggingMiddleware: RequestHandler = (req, res, next) => {
@@ -975,9 +842,10 @@ const createRateLimiter = (requests: number, windowMs: number): RequestHandler =
 };
 
 // Usage in controller
-@Get('/users')
-@Middleware([loggingMiddleware, createRateLimiter(10, 60000)])
-async getUsers() {
+@get('/users')
+@middleware(loggingMiddleware)
+@middleware(createRateLimiter(10, 60000))
+async getUsers(@req() req: Request) {
   // Middleware chain: logging -> rate limiting -> route handler
 }
 ```
@@ -993,22 +861,13 @@ interface IUserService {
 	findById(id: string): Promise<User | null>;
 }
 
-interface IEmailService {
-	sendWelcomeEmail(user: User): Promise<void>;
-}
-
 // Service implementations
 @injectable()
 class UserService implements IUserService {
-	constructor(
-		@inject('UserRepository') private userRepo: IUserRepository,
-		@inject('EmailService') private emailService: IEmailService
-	) {}
+	constructor(@inject('UserRepository') private userRepo: IUserRepository) {}
 
 	async create(userData: CreateUserDto): Promise<User> {
-		const user = await this.userRepo.create(userData);
-		await this.emailService.sendWelcomeEmail(user);
-		return user;
+		return this.userRepo.create(userData);
 	}
 
 	async findById(id: string): Promise<User | null> {
@@ -1016,86 +875,22 @@ class UserService implements IUserService {
 	}
 }
 
-@injectable()
-class EmailService implements IEmailService {
-	async sendWelcomeEmail(user: User): Promise<void> {
-		// Email sending logic
-		console.log(`Welcome email sent to ${user.email}`);
-	}
-}
-
 // Container configuration
 container.bind<IUserRepository>('UserRepository').to(UserRepository);
-container.bind<IEmailService>('EmailService').to(EmailService);
 container.bind<IUserService>('UserService').to(UserService);
 
 // Controller with dependency injection
-@Controller('/api/users')
+@controller('/api/users')
 @injectable()
 export class UserController {
 	constructor(@inject('UserService') private userService: IUserService) {}
 
-	@Post('/')
-	@Validation({ body: CreateUserDto })
-	async createUser(@Body() userData: CreateUserDto) {
+	@post('/')
+	@validate({ body: CreateUserDto })
+	async createUser(@req() req: Request) {
+		const userData = req.body;
 		const user = await this.userService.create(userData);
 		return new ResponseBuilder().created(user);
-	}
-}
-```
-
-### Error Handling Patterns
-
-```typescript
-// Global error handler
-const globalErrorHandler: RequestHandler = (err, req, res, next) => {
-	if (err instanceof HttpException) {
-		return res.status(err.code).json(err.messageJson);
-	}
-
-	console.error('Unhandled error:', err);
-	res.status(500).json({
-		message: 'Internal server error',
-		errorId: 500000,
-	});
-};
-
-// Custom exception classes
-export class UserNotFoundError extends NotFoundException {
-	constructor(userId: string) {
-		super({
-			message: `User with ID ${userId} not found`,
-			errorId: 404001,
-		});
-	}
-}
-
-export class DuplicateEmailError extends ConflictException {
-	constructor(email: string) {
-		super({
-			message: `User with email ${email} already exists`,
-			errorId: 409001,
-		});
-	}
-}
-
-// Usage in service
-@injectable()
-class UserService {
-	async findById(id: string): Promise<User> {
-		const user = await this.userRepo.findById(id);
-		if (!user) {
-			throw new UserNotFoundError(id);
-		}
-		return user;
-	}
-
-	async create(userData: CreateUserDto): Promise<User> {
-		const existingUser = await this.userRepo.findByEmail(userData.email);
-		if (existingUser) {
-			throw new DuplicateEmailError(userData.email);
-		}
-		return this.userRepo.create(userData);
 	}
 }
 ```
@@ -1146,23 +941,18 @@ export { MINI_TYPES } from '@mini2/core';
 
 // Decorators
 export {
-	Controller,
-	Get,
-	Post,
-	Put,
-	Delete,
-	Patch,
-	Body,
-	Param,
-	Query,
-	Header,
-	Req,
-	Res,
-	Next,
-	Authenticated,
-	Authorized,
-	Validation,
-	Middleware,
+	controller,
+	get,
+	post,
+	put,
+	del,
+	patch,
+	req,
+	res,
+	authenticated,
+	authorized,
+	validate,
+	middleware,
 } from '@mini2/core';
 
 // Swagger
