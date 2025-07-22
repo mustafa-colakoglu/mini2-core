@@ -1,14 +1,15 @@
 {
 	"scripts": {
-		"test": "npm run test"
+		"test": "npm run test",
+		"build": "tsc"
 	},
-	"main": "app.ts",
+	"main": "dist/app.js",
 	"type": "module",
 	"keywords": [],
 	"license": "ISC",
 	"description": "",
 	"name": "@mini2/core",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"author": "Mustafa Çolakoglu <mustafacolakoglu94@gmail.com> (https://github.com/mustafa-colakoglu)",
 	"dependencies": {
 		"class-transformer": "^0.5.1",
