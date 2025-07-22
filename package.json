@@ -6,7 +6,7 @@
 		"rebuild": "npm run clean && npm run build",
 		"prepublishOnly": "npm run rebuild",
 		"dev": "tsc --watch",
-		"publish": "npm run build && npm publish",
+		"publish1": "npm run build && npm publish",
 		"publish:patch": "tsc && npm version patch && npm publish",
 		"publish:minor": "tsc && npm version minor && npm publish",
 		"publish:major": "tsc && npm version major && npm publish"
@@ -25,7 +25,7 @@
 	"license": "ISC",
 	"description": "Mini Express Framework - Lightweight and modular Express.js framework with TypeScript support",
 	"name": "@mini2/core",
-	"version": "1.0.7",
+	"version": "1.0.9",
 	"author": "Mustafa Çolakoglu <mustafacolakoglu94@gmail.com> (https://github.com/mustafa-colakoglu)",
 	"dependencies": {
 		"class-transformer": "^0.5.1",
