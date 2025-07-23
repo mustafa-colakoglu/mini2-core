@@ -756,15 +756,84 @@ const result = sum(5, 3); // 8
 
 ### 📖 Swagger Integration
 
-Automatic API documentation is generated based on your decorators and DTOs.
+@mini2/core automatically generates comprehensive API documentation using Swagger/OpenAPI 3.0 specification based on your decorators and DTOs.
+
+#### **📍 API Documentation Endpoints**
+
+When your application starts, Swagger documentation is automatically available at:
 
 ```typescript
-// Swagger documentation available at:
-// http://localhost:3000/api-docs      - Swagger UI
-// http://localhost:3000/api-docs.json - OpenAPI JSON spec
+// Interactive Swagger UI - Test your API directly in browser
+http://localhost:3000/api-docs
+
+// Raw OpenAPI JSON specification - For tools, imports, etc.
+http://localhost:3000/api-docs.json
 ```
 
-**Swagger Configuration:**
+#### **🔧 Automatic Documentation Features**
+
+- **Route Discovery**: All `@controller` and HTTP method decorators are automatically documented
+- **Request/Response Schemas**: DTO classes with `class-validator` decorators generate JSON schemas
+- **Security Requirements**: `@authenticated` and `@authorized` decorators add security info
+- **Parameter Documentation**: Path parameters, query parameters, and request bodies are documented
+- **HTTP Status Codes**: Response codes from `ResponseBuilder` and exceptions are included
+
+#### **📋 Example Generated Documentation**
+
+For this controller:
+
+```typescript
+@controller('/api/users')
+export class UserController {
+	@get('/:id')
+	@authenticated()
+	@authorized(['user:read'])
+	@validate({ params: UserParamsDto })
+	async getUser(@req() req: Request) {
+		const id = req.params.id;
+		const user = await this.userService.findById(id);
+		return new ResponseBuilder().ok(user);
+	}
+
+	@post('/')
+	@validate({ body: CreateUserDto })
+	async createUser(@req() req: Request) {
+		const userData = req.body;
+		const user = await this.userService.create(userData);
+		return new ResponseBuilder().created(user);
+	}
+}
+```
+
+Swagger will automatically generate:
+
+- **GET /api/users/{id}** - Requires authentication and authorization
+- **POST /api/users** - With CreateUserDto schema for request body
+- Parameter definitions, security requirements, and response schemas
+
+#### **🎯 DTO-Based Schema Generation**
+
+Class-validator decorators automatically create OpenAPI schemas:
+
+```typescript
+export class CreateUserDto {
+	@IsEmail()
+	email: string;
+
+	@IsString()
+	@MinLength(2)
+	name: string;
+
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	age?: number;
+}
+```
+
+#### **⚙️ Swagger Configuration**
+
+Default configuration is applied automatically, but you can customize it:
 
 ```typescript
 const swaggerOptions = {
@@ -772,10 +841,62 @@ const swaggerOptions = {
 	description: `API documentation for ${config.applicationName}`,
 	version: '1.0.0',
 	servers: [{ url: `http://${config.host}:${config.port}` }],
-	docsPath: '/api-docs',
-	jsonPath: '/api-docs.json',
+	docsPath: '/api-docs', // Swagger UI endpoint
+	jsonPath: '/api-docs.json', // OpenAPI JSON endpoint
+	components: {
+		securitySchemes: {
+			bearerAuth: {
+				type: 'http',
+				scheme: 'bearer',
+				bearerFormat: 'JWT',
+			},
+		},
+	},
 };
 ```
+
+#### **🔐 Security Documentation**
+
+Security decorators automatically add authentication requirements:
+
+```typescript
+@get('/profile')
+@authenticated()
+@authorized(['user:profile'])
+async getProfile(@req() req: Request) {
+  // Swagger will show:
+  // - 🔒 Authentication required
+  // - 🛡️ Requires 'user:profile' permission
+  // - 401 Unauthorized response possible
+  // - 403 Forbidden response possible
+}
+```
+
+#### **📊 Response Documentation**
+
+ResponseBuilder methods automatically document response types:
+
+```typescript
+@post('/users')
+async createUser(@req() req: Request) {
+  const user = await this.userService.create(req.body);
+
+  // Swagger documents:
+  // - 201 Created status
+  // - User object schema in response body
+  // - Location header if set
+  return new ResponseBuilder()
+    .created(user)
+    .setHeader('Location', `/users/${user.id}`);
+}
+```
+
+#### **🚀 Production Usage**
+
+- Swagger UI is automatically available in all environments
+- For production, consider disabling Swagger UI and keeping only JSON endpoint
+- OpenAPI JSON can be used with external documentation tools
+- All validation errors are automatically documented with examples
 
 ### 📝 TypeScript Support
 
