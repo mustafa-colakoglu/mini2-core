@@ -4,10 +4,11 @@ import morgan from 'morgan';
 import { IApp } from './interfaces/app.interface';
 import { IConfig } from './interfaces/config.interface';
 import { buildApp } from './rest';
-import { Container, multiInject } from 'inversify';
+import { Container, injectable, multiInject } from 'inversify';
 import { SwaggerIntegration } from './swagger';
 import { MINI_TYPES } from './types';
 
+@injectable()
 class App implements IApp {
 	app: Express;
 	container: Container;
