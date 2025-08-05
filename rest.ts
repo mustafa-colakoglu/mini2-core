@@ -61,7 +61,7 @@ export function httpMethod(newOptions: RouteOptions) {
 			(newOptions.permissions || []).concat(existingOptions.permissions || [])
 		);
 		const authenticated =
-			newOptions.authenticated || existingOptions.authenticated;
+			newOptions.authenticated !== undefined ? newOptions.authenticated : existingOptions.authenticated !== undefined ? existingOptions.authenticated : undefined;
 		const otherHttpMiddlewares = arrayUnify(
 			(newOptions.otherHttpMiddlewares || []).concat(
 				existingOptions.otherHttpMiddlewares || []
@@ -152,7 +152,7 @@ export function buildRouterFromController(controllerClass: any): IRouter {
 		if (!routeOptions.method) {
 			throw new Error('Route method is required');
 		}
-
+		console.log(routeOptions)
 		const validations = routeOptions.validations;
 		const permissions = routeOptions.permissions;
 		const authenticated = routeOptions.authenticated;
@@ -180,7 +180,7 @@ export function buildRouterFromController(controllerClass: any): IRouter {
 		if (authenticated) {
 			middlewares.push(authenticatedMiddleware as unknown as RequestHandler);
 		}
-		if (permissions) {
+		if (permissions && permissions.length > 0) {
 			middlewares.push(
 				authorizedMiddleware(permissions) as unknown as RequestHandler
 			);
