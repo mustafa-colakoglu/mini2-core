@@ -157,7 +157,8 @@ export function buildRouterFromController(controllerClass: any): IRouter {
 		const permissions = routeOptions.permissions;
 		const authenticated = routeOptions.authenticated;
 		const otherHttpMiddlewares = routeOptions.otherHttpMiddlewares;
-		const handler = controllerClass[property];
+		const handler = controllerClass[property].bind(controllerClass);
+
 		const validationMiddlewares = [];
 		if (validations) {
 			for (const validation of validations) {

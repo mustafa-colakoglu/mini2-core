@@ -2,7 +2,7 @@
 export { default as App } from './app';
 
 // Container Class ve instance için
-export { Container } from 'inversify';
+export { Container, inject, injectable } from 'inversify';
 export { default as container } from './container';
 
 // Interfaces

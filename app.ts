@@ -43,6 +43,11 @@ class App implements IApp {
 		swaggerIntegration.setupSwagger(this.app);
 		buildApp(this.app, this.controllers);
 	}
+	getApp(){
+		return this.app;
+	}
+
+
 
 	async afterInit() {
 		console.log('afterInit');
