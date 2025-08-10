@@ -73,7 +73,9 @@ export class SwaggerIntegration {
 					return;
 				}
 
-				const fullPath = controllerPath + routeOptions.path;
+				const fullPath =
+	controllerPath.replace(/\/$/, '') + routeOptions.path.replace(/:([a-zA-Z0-9_]+)/g, '{$1}');
+
 				const method = routeOptions.method.toLowerCase();
 				if (!paths[fullPath]) {
 					paths[fullPath] = {};
