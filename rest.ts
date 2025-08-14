@@ -196,7 +196,6 @@ export function buildRouterFromController(controllerClass: any): IRouter {
 		if (!routeOptions.method) {
 			throw new Error('Route method is required');
 		}
-		console.log(routeOptions)
 		const validations = routeOptions.validations;
 		const permissions = routeOptions.permissions;
 		const authenticated = routeOptions.authenticated;

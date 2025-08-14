@@ -50,7 +50,7 @@ class App implements IApp {
 
 
 	async afterInit() {
-		console.log('afterInit');
+		// console.log('afterInit');
 	}
 }
 
