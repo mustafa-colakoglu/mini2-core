@@ -15,6 +15,8 @@ import { authorizedMiddleware } from './middlewares/authorized.middleware';
 
 export type Method = 'get' | 'post' | 'put' | 'delete' | 'patch';
 export const keyOfPath = Symbol('path');
+export const keyOfName = Symbol("name");
+export const keyOfModuleName = Symbol("moduleName")
 export const keyOfRouteOptions = Symbol('routeOptions');
 export const keyOfReq = Symbol('req');
 export const keyOfRes = Symbol('res');
@@ -29,6 +31,7 @@ export type IValidation = {
 	params?: any;
 	query?: any;
 };
+export type IExtraData = Map<string, any>;
 export interface RouteOptions {
 	method?: Method;
 	path?: string;
@@ -36,11 +39,21 @@ export interface RouteOptions {
 	permissions?: string[];
 	authenticated?: boolean;
 	otherHttpMiddlewares?: RequestHandler[];
+	extraData?:IExtraData;
+	name?:string;
 }
 
-export function controller(path: string) {
+export function controller(path: string, name?:string, moduleName?:string) {
 	return function <T extends { new (...args: any[]): {} }>(constructor: T) {
+		if(!name){
+			name = path;
+		}
+		if(!moduleName){
+			moduleName = name;
+		}
 		Reflect.defineMetadata(keyOfPath, path, constructor);
+		Reflect.defineMetadata(keyOfName, name, constructor);
+		Reflect.defineMetadata(keyOfModuleName, moduleName, constructor);
 		return constructor;
 	};
 }
@@ -50,7 +63,7 @@ export function httpMethod(newOptions: RouteOptions) {
 		propertyKey: string,
 		_descriptor: PropertyDescriptor
 	) {
-		const existingOptions =
+		const existingOptions:RouteOptions =
 			Reflect.getMetadata(keyOfRouteOptions, target, propertyKey) || {};
 		const method = newOptions.method || existingOptions.method;
 		const path = newOptions.path || existingOptions.path;
@@ -67,6 +80,31 @@ export function httpMethod(newOptions: RouteOptions) {
 				existingOptions.otherHttpMiddlewares || []
 			)
 		);
+		const name = newOptions.name || existingOptions.name;
+		const extraData:IExtraData = existingOptions.extraData || new Map<string, any>();
+		if(newOptions.extraData){
+			const newOptionsExtraData = newOptions.extraData;
+			for(const newOptionsExtraDataKey of Array.from(newOptionsExtraData.keys())){
+				const currentValue = extraData.get(newOptionsExtraDataKey);
+				if(!currentValue){
+					extraData.set(newOptionsExtraDataKey, newOptionsExtraData.get(newOptionsExtraDataKey))
+					continue;
+				}
+				
+				const newValue = newOptionsExtraData.get(newOptionsExtraDataKey);
+				let newValueFinal = currentValue;
+				if(Array.isArray(currentValue)){
+					newValueFinal = arrayUnify([...currentValue, ...newValue])
+				}
+				else if(typeof currentValue === "object"){
+					newValueFinal = {...currentValue, ...newValue}
+				} 
+				else{
+					newValueFinal = newValue;
+				}
+				extraData.set(newOptionsExtraDataKey, newValueFinal);
+			}
+		}
 		const mergedOptions = {
 			method,
 			path,
@@ -74,25 +112,27 @@ export function httpMethod(newOptions: RouteOptions) {
 			permissions,
 			authenticated,
 			otherHttpMiddlewares,
+			name,
+			extraData,
 		};
 
 		Reflect.defineMetadata(keyOfRouteOptions, mergedOptions, target, propertyKey);
 	};
 }
-export function get(path: string) {
-	return httpMethod({ path, method: 'get' });
+export function get(path: string, name?:string) {
+	return httpMethod({ path, method: 'get', name:name || path });
 }
-export function post(path: string) {
-	return httpMethod({ path, method: 'post' });
+export function post(path: string, name?:string) {
+	return httpMethod({ path, method: 'post',name:name || path });
 }
-export function put(path: string) {
-	return httpMethod({ path, method: 'put' });
+export function put(path: string, name?:string) {
+	return httpMethod({ path, method: 'put', name:name || path });
 }
-export function del(path: string) {
-	return httpMethod({ path, method: 'delete' });
+export function del(path: string, name?:string) {
+	return httpMethod({ path, method: 'delete', name:name || path });
 }
-export function patch(path: string) {
-	return httpMethod({ path, method: 'patch' });
+export function patch(path: string, name?:string) {
+	return httpMethod({ path, method: 'patch', name:name || path });
 }
 export function validate(options: IValidation | IValidation[]) {
 	return httpMethod({
@@ -110,7 +150,11 @@ export function authorized(value: string | string[]) {
 export function middleware(middlewares: RequestHandler) {
 	return httpMethod({ otherHttpMiddlewares: [middlewares] });
 }
-
+export function custom<T>(key:string, value:T){
+	const extraData = new Map<string, T>();
+	extraData.set(key, value);
+	return httpMethod({extraData})
+}
 // Param decorator'ları
 export function req() {
 	return function (target: any, propertyKey: string, parameterIndex: number) {
