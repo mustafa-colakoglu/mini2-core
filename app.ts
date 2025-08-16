@@ -1,4 +1,4 @@
-import express, { Express } from 'express';
+import express, { Express, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { IApp } from './interfaces/app.interface';
@@ -8,6 +8,7 @@ import { Container, injectable, multiInject } from 'inversify';
 import { SwaggerIntegration } from './swagger';
 import { MINI_TYPES } from './types';
 import container from './container';
+import HttpException from './expections/http.expection';
 
 @injectable()
 class App implements IApp {
@@ -51,8 +52,28 @@ class App implements IApp {
 
 
 
-	async afterInit() {
-		// console.log('afterInit');
+	async afterInit(standartErrorHandler:boolean = true) {
+		if(standartErrorHandler){
+			this.app.use(
+				(
+					error: unknown,
+					_req: Request,
+					res: Response,
+					_next: NextFunction,
+				) => {
+					if (error instanceof HttpException) {
+						res.status(error.code).json(error.messageJson);
+					} else {
+
+						console.error("Unexpected error:", error);
+						res.status(500).json({
+							errorId: 1,
+							message: "Some error happen",
+						});
+					}
+				},
+			);
+		}
 	}
 }
 

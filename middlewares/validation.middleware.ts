@@ -1,76 +1,67 @@
+// middlewares/validation.middleware.ts
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { plainToInstance } from 'class-transformer';
-import { validate, ValidationError } from 'class-validator';
-import type { RequestHandler, Request, Response, NextFunction } from 'express';
-import type { IValidationError } from '../expections/http.expection';
-import HttpException from '../expections/http.expection';
+import { validate } from 'class-validator';
 
-const validationMiddleware = <T extends object>(
-	type: new () => T,
-	value: 'body' | 'query' | 'params',
-	skipMissingProperties = false,
-	whitelist = true,
-	forbidNonWhitelisted = true
-): RequestHandler => {
-	return (req: Request, _res: Response, next: NextFunction) => {
-		// Query parametrelerinde boolean değerleri düzgün işle
-		if (value === 'query' && req.query) {
-			Object.keys(req.query).forEach((key) => {
-				if (req.query[key] === 'true') req.query[key] = true as any;
-				if (req.query[key] === 'false') req.query[key] = false as any;
-			});
-		}
+/**
+ * validationMiddleware(ValidationClass, 'body' | 'query' | 'params')
+ * - Orijinal kaynakları (req.body/query/params) ÜZERİNE YAZMAZ.
+ * - Doğrulanmış veriyi şu alanlara koyar: req.validatedBody / req.validatedQuery / req.validatedParams
+ * - Hata varsa 400 döner.
+ */
+export default function validationMiddleware(
+  ValidationClass: new (...args: any[]) => any,
+  type: 'body' | 'query' | 'params'
+): RequestHandler {
+  const handler: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const source =
+        type === 'body' ? req.body :
+        type === 'query' ? req.query :
+                           req.params;
 
-		// 🔽 Eğer dosya alanları varsa, req.body'ye dahil et
-		if (value === 'body' && (req as any).files) {
-			const files = (req as any).files as Record<string, any[]>;
-			for (const field in files) {
-				if (Array.isArray(files[field]) && files[field].length > 0) {
-					req.body[field] = files[field][0]; // sadece ilk dosyayı al
-				}
-			}
-		}
+      // class-transformer
+      const instance = plainToInstance(ValidationClass, source, {
+        enableImplicitConversion: true,
+        exposeDefaultValues: true,
+      });
 
-		const data = plainToInstance(type, req[value], {
-			enableImplicitConversion: true, // Otomatik tip dönüşümü için
-			exposeDefaultValues: true,
-		});
+      // class-validator
+      const errors = await validate(instance as object, {
+        whitelist: true,
+        forbidNonWhitelisted: false,
+        skipMissingProperties: false,
+        validationError: { target: false, value: false },
+      });
 
-		validate(data as object, {
-			skipMissingProperties,
-			whitelist,
-			forbidNonWhitelisted,
-		}).then((errors: ValidationError[]) => {
-			if (errors.length > 0) {
-				const messages: IValidationError[] = errors.map(
-					(error: ValidationError) => {
-						const error1: IValidationError = {
-							field: error.property,
-							errors: [],
-						};
-						for (const key of Object.keys(error?.constraints || {})) {
-							if (error.constraints?.[key]) {
-								error1.errors.push(error.constraints[key]);
-							}
-						}
-						return error1;
-					}
-				);
-				next(
-					new HttpException(
-						{
-							errorId: 1,
-							message: 'Validation error',
-							validationErrors: messages,
-						},
-						400
-					)
-				);
-			} else {
-				req[value] = data as any;
-				next();
-			}
-		});
-	};
-};
+      if (errors.length > 0) {
+        res.status(400).json({
+          ok: false,
+          message: 'Validation error',
+          errors: errors.map(e => ({
+            property: e.property,
+            constraints: e.constraints,
+          })),
+        });
+        return; // <-- explicit return
+      }
 
-export default validationMiddleware;
+      // validated* alanlarına yaz
+      if (type === 'body')   (req as any).validatedBody = instance;
+      if (type === 'query')  (req as any).validatedQuery = instance;
+      if (type === 'params') (req as any).validatedParams = instance;
+
+      next();
+      return; // <-- explicit return
+    } catch (err: any) {
+      res.status(400).json({
+        ok: false,
+        message: 'Validation middleware failed',
+        error: err?.message ?? String(err),
+      });
+      return; // <-- explicit return
+    }
+  };
+
+  return handler; // <-- handler'ı açıkça döndür
+}
