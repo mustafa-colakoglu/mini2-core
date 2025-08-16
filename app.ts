@@ -3,19 +3,21 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { IApp } from './interfaces/app.interface';
 import { IConfig } from './interfaces/config.interface';
-import { buildApp } from './rest';
+import { buildApp, IController } from './rest';
 import { Container, injectable, multiInject } from 'inversify';
 import { SwaggerIntegration } from './swagger';
 import { MINI_TYPES } from './types';
+import container from './container';
 
 @injectable()
 class App implements IApp {
 	app: Express;
 	container: Container;
 
-	constructor(@multiInject(MINI_TYPES.IController) private controllers: any[]) {
+	constructor(@multiInject(MINI_TYPES.IController) private controllers: IController[]) {
 		this.app = express();
-		this.container = new Container();
+		this.container = container;
+		console.log(this.controllers)
 	}
 
 	async init(config: IConfig) {

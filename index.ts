@@ -1,4 +1,4 @@
-// Ana Application sınıfı
+// Main Application class
 export { default as App } from './app';
 
 // Container Class ve instance için
