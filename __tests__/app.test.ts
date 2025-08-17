@@ -9,7 +9,7 @@ import {
   validate, authenticated, authorized, middleware, custom,
   req, res, next, body, query, params,
   Controller, IController, buildApp
-} from '../rest';
+} from '../index';
 
 import { IsString, IsOptional, IsInt, Min, Max, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';

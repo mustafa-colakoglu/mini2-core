@@ -1,9 +1,15 @@
+import App from './app';
+import container from './container';
+import { IApp } from './interfaces/app.interface';
+import { MINI_TYPES } from './types';
 // Main Application class
-export { default as App } from './app';
 
 // Container Class ve instance için
-export { Container, inject, injectable, multiInject } from 'inversify';
-export { default as container } from './container';
+export *  from 'inversify';
+export { container };
+export { IApp };
+export { App };
+export { MINI_TYPES };
 
 // Interfaces
 export * from './interfaces/app.interface';
@@ -36,3 +42,5 @@ export * from './rest';
 
 // Swagger integration
 export * from './swagger';
+
+container.bind<IApp>(MINI_TYPES.IApp).to(App).inSingletonScope();
