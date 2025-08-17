@@ -68,6 +68,7 @@ export interface IControllerClassConstructor {
 /* ------------------------------------------------------------------ */
 export interface IController {
   moduleName: string;
+  getRouteDefinition(methodName:string) : RouteDefinition;
 }
 
 export class Controller implements IController {
@@ -79,6 +80,11 @@ export class Controller implements IController {
     const metaModuleName: string | undefined = Reflect.getMetadata(keyOfModuleName, ctor);
     this.moduleName = moduleName ?? metaModuleName ?? ctor.name;
     this.RouteManager = RouteRegistry.getRouteDefinitions(ctor);
+  }
+  getRouteDefinition(methodName: string): RouteDefinition {
+    const find =  this.RouteManager.routes.find(item => item.methodName === methodName);
+    if(!find) throw new Error("Route definition of method not found");
+    return find;
   }
 }
 
