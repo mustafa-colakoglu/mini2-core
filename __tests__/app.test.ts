@@ -8,7 +8,8 @@ import {
   controller, get, post, put, del, patch,
   validate, authenticated, authorized, middleware, custom,
   req, res, next, body, query, params,
-  Controller, IController, buildApp
+  Controller, IController, buildApp,
+  ResponseBuilder
 } from '../index';
 
 import { IsString, IsOptional, IsInt, Min, Max, IsNotEmpty } from 'class-validator';
@@ -31,6 +32,10 @@ class QueryDto {
   @Type(() => Number) @IsInt() @Min(1) @Max(100) @IsOptional() limit?: number;
   @IsString() @IsOptional() q?: string;
 }
+class TestHeaderValidationDto{
+    @IsString()
+    'x-echo':string;
+  }
 
 /* ----------------------------- Örnek extra middleware ----------------------------- */
 const echoHeader: RequestHandler = (req, _res, next) => {
@@ -41,7 +46,7 @@ const echoHeader: RequestHandler = (req, _res, next) => {
 /* ------------------------------- Controller ------------------------------ */
 @controller('/test', 'Test Controller', 'Test Module')
 class Test extends Controller implements IController {
-  constructor() { super('Test Module'); }
+  constructor() { super(); }
 
   @get('/', 'Root GET')
   public root(@req() req: Request, @res() res: Response): void {
@@ -51,8 +56,8 @@ class Test extends Controller implements IController {
       route: 'GET /test',
       echo: (req as any).echo ?? null,
       moduleName: this.moduleName,
-      basePath: this.RouteManager.basePath,
-      routesCount: this.RouteManager.routes.length,
+      basePath: this.routeDefinitions.basePath,
+      routesCount: this.routeDefinitions.routes.length,
     });
   }
 
@@ -120,7 +125,7 @@ class Test extends Controller implements IController {
 
   @get('/registry', 'Registry dump')
   public registryDump(@res() res: Response): void {
-    const defs = this.RouteManager;
+    const defs = this.routeDefinitions;
     res.setHeader('x-handler', 'registry');
     res.json({
       basePath: defs.basePath,
@@ -136,8 +141,16 @@ class Test extends Controller implements IController {
       })),
     });
   }
+  @get("/validate-header", "Validate header")
+  @validate({ headers: TestHeaderValidationDto })
+  public validateHeader(@req() req:Request): ResponseBuilder<any> {
+    const echoHeader = req.headers['x-echo'];
+    return new ResponseBuilder().ok({
+      route: 'GET /test/validate-header',
+      echo: echoHeader ?? null,
+    });
+  }
 }
-
 /* ----------------------------- Test app builder ----------------------------- */
 function makeApp() {
   const app = express();
@@ -273,5 +286,16 @@ describe('Test controller (integration)', () => {
     expect(res_.body.basePath).toBe('/test');
     expect(Array.isArray(res_.body.routes)).toBe(true);
     expect(res_.body.routes.length).toBeGreaterThan(0);
+  });
+
+  it('GET /test/validate-header -> 400 (RouteRegistry dump)', async () => {
+    const app = makeApp();
+    const res_ = await request(app).get('/test/validate-header');
+    expect(res_.status).toBe(400);
+  });
+  it('GET /test/validate-header -> 200 (RouteRegistry dump)', async () => {
+    const app = makeApp();
+    const res_ = await request(app).get('/test/validate-header').set('x-echo', 'my-header-value');
+    expect(res_.status).toBe(200);
   });
 });
