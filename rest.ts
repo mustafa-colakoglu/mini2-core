@@ -67,24 +67,38 @@ export interface IControllerClassConstructor {
 /* IController + Controller (temel sınıf)                              */
 /* ------------------------------------------------------------------ */
 export interface IController {
+  path:string;
+  name:string;
   moduleName: string;
   getRouteDefinition(methodName:string) : RouteDefinition;
+  getRouteDefinitions():RouteDefinitions;
 }
 
 export class Controller implements IController {
+  path:string;
+  name:string;
   moduleName: string;
-  RouteManager: RouteDefinitions;
+  routeDefinitions: RouteDefinitions;
 
-  constructor(moduleName?: string) {
+  constructor() {
     const ctor = this.constructor as any;
+    
+    const metaPath:string = Reflect.getMetadata(keyOfPath, ctor);
+    const metaName = Reflect.getMetadata(keyOfName, ctor);
     const metaModuleName: string | undefined = Reflect.getMetadata(keyOfModuleName, ctor);
-    this.moduleName = moduleName ?? metaModuleName ?? ctor.name;
-    this.RouteManager = RouteRegistry.getRouteDefinitions(ctor);
+    this.path = metaPath;
+    this.name = metaName || metaPath;
+    this.moduleName = metaModuleName || metaName;
+
+    this.routeDefinitions = RouteRegistry.getRouteDefinitions(ctor);
   }
   getRouteDefinition(methodName: string): RouteDefinition {
-    const find =  this.RouteManager.routes.find(item => item.methodName === methodName);
+    const find =  this.routeDefinitions.routes.find(item => item.methodName === methodName);
     if(!find) throw new Error("Route definition of method not found");
     return find;
+  }
+  getRouteDefinitions(): RouteDefinitions {
+    return this.routeDefinitions;
   }
 }
 
