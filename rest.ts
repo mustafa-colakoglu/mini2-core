@@ -9,7 +9,7 @@ import type {
 } from 'express';
 import { arrayUnify } from './utils/array-unify';
 import { IResponseBuilder } from './response-builder';
-import validationMiddleware from './middlewares/validation.middleware';
+import validationMiddleware, { IValidation } from './middlewares/validation.middleware';
 import { authenticatedMiddleware } from './middlewares/authenticated.middleware';
 import { authorizedMiddleware } from './middlewares/authorized.middleware';
 
@@ -17,12 +17,6 @@ import { authorizedMiddleware } from './middlewares/authorized.middleware';
 /* Türler                                                              */
 /* ------------------------------------------------------------------ */
 export type Method = 'get' | 'post' | 'put' | 'delete' | 'patch';
-
-export type IValidation = {
-  body?: any;
-  params?: any;
-  query?: any;
-};
 
 export type IExtraData = Map<string, any>;
 export type ParameterSlot = 'req' | 'res' | 'next' | 'body' | 'query' | 'params';
@@ -346,7 +340,7 @@ export function buildRouterFromController(controllerInstance: IController): IRou
 
     const validationMiddlewares: RequestHandler[] = [];
     const pushOnce = (arr: RequestHandler[], mw: RequestHandler) => { if (!arr.includes(mw)) arr.push(mw); };
-    const order: Array<keyof IValidation> = ['params', 'query', 'body'];
+    const order: Array<keyof IValidation> = ['params', 'query', 'body', 'headers'];
     for (const v of validations ?? []) {
       for (const t of order) {
         const klass = v[t];

@@ -1,24 +1,23 @@
-// middlewares/validation.middleware.ts
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-
-/**
- * validationMiddleware(ValidationClass, 'body' | 'query' | 'params')
- * - Orijinal kaynakları (req.body/query/params) ÜZERİNE YAZMAZ.
- * - Doğrulanmış veriyi şu alanlara koyar: req.validatedBody / req.validatedQuery / req.validatedParams
- * - Hata varsa 400 döner.
- */
+export type IValidation = {
+  body?: any;
+  params?: any;
+  query?: any;
+  headers?:any;
+};
 export default function validationMiddleware(
   ValidationClass: new (...args: any[]) => any,
-  type: 'body' | 'query' | 'params'
+  type: keyof IValidation
 ): RequestHandler {
   const handler: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const source =
         type === 'body' ? req.body :
         type === 'query' ? req.query :
-                           req.params;
+        type === 'headers' ? req.headers :
+                            req.params;
 
       // class-transformer
       const instance = plainToInstance(ValidationClass, source, {
