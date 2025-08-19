@@ -12,7 +12,7 @@ import {
   ResponseBuilder
 } from '../index';
 
-import { IsString, IsOptional, IsInt, Min, Max, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, Max, IsNotEmpty, IsMongoId } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /* ----------------------------- Class-Validator DTOs ----------------------------- */
@@ -35,6 +35,8 @@ class QueryDto {
 class TestHeaderValidationDto{
     @IsString()
     'x-echo':string;
+    @IsMongoId()
+    "x-mongo-id": string;
   }
 
 /* ----------------------------- Örnek extra middleware ----------------------------- */
@@ -144,7 +146,10 @@ class Test extends Controller implements IController {
   @get("/validate-header", "Validate header")
   @validate({ headers: TestHeaderValidationDto })
   public validateHeader(@req() req:Request): ResponseBuilder<any> {
-    const echoHeader = req.headers['x-echo'];
+    const headers = req.headers as any;
+    const echoHeader = headers['x-echo'] ?? null;
+    const mongoId = headers['x-mongo-id'] ?? null;
+    console.log('Header validation:', { echoHeader, mongoId });
     return new ResponseBuilder().ok({
       route: 'GET /test/validate-header',
       echo: echoHeader ?? null,
@@ -278,7 +283,7 @@ describe('Test controller (integration)', () => {
     expect(res_.body).toEqual({ errorId: 1, message: 'Some error happen' });
   });
 
-  it('GET /test/registry -> 200 (RouteRegistry dump)', async () => {
+  it('GET /test/registry -> 200', async () => {
     const app = makeApp();
     const res_ = await request(app).get('/test/registry');
     expect(res_.status).toBe(200);
@@ -288,14 +293,25 @@ describe('Test controller (integration)', () => {
     expect(res_.body.routes.length).toBeGreaterThan(0);
   });
 
-  it('GET /test/validate-header -> 400 (RouteRegistry dump)', async () => {
+  it('GET /test/validate-header -> 400', async () => {
     const app = makeApp();
     const res_ = await request(app).get('/test/validate-header');
     expect(res_.status).toBe(400);
   });
-  it('GET /test/validate-header -> 200 (RouteRegistry dump)', async () => {
+  it('GET /test/validate-header -> 400', async () => {
     const app = makeApp();
-    const res_ = await request(app).get('/test/validate-header').set('x-echo', 'my-header-value');
+    const res_ = await request(app)
+    .get('/test/validate-header')
+    .set('x-echo', 'my-header-value')
+    .set('x-mongo-id', '507f1f77bcf86cd799439www');
+    expect(res_.status).toBe(400);
+  });
+  it('GET /test/validate-header -> 200', async () => {
+    const app = makeApp();
+    const res_ = await request(app)
+    .get('/test/validate-header')
+    .set('x-echo', 'my-header-value')
+    .set('x-mongo-id', '507f1f77bcf86cd799439011');
     expect(res_.status).toBe(200);
   });
 });
