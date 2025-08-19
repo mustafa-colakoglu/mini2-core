@@ -350,10 +350,10 @@ export function buildRouterFromController(controllerInstance: IController): IRou
     }
 
     const middlewares: RequestHandler[] = [];
+    if (validationMiddlewares.length) middlewares.push(...validationMiddlewares);
     if (authenticated) middlewares.push(authenticatedMiddleware as RequestHandler);
     if (permissions && permissions.length > 0) middlewares.push(authorizedMiddleware(permissions) as RequestHandler);
     if (otherHttpMiddlewares) middlewares.push(...otherHttpMiddlewares);
-    if (validationMiddlewares.length) middlewares.push(...validationMiddlewares);
 
     const method    = routeOptions.method!;
     const routePath = routeOptions.path!;
