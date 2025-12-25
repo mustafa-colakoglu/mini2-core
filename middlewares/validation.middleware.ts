@@ -56,6 +56,10 @@ export default function validationMiddleware(
         return; // <-- explicit return
       }
       (req as any)[type] = instance;
+      if(logging){
+        console.log(`MINI2@CORE ASSIGNED INSTANCE TO ${type}`)
+        console.log((req as any)[type])
+      }
       next();
       return; // <-- explicit return
     } catch (err: any) {
