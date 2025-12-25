@@ -6,10 +6,12 @@ export type IValidation = {
   params?: any;
   query?: any;
   headers?:any;
+  logging?:boolean;
 };
 export default function validationMiddleware(
   ValidationClass: new (...args: any[]) => any,
-  type: keyof IValidation
+  type: keyof IValidation,
+  logging?:boolean
 ): RequestHandler {
   const handler: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -18,12 +20,21 @@ export default function validationMiddleware(
         type === 'query' ? req.query :
         type === 'headers' ? req.headers :
                             req.params;
+      if(logging){
+        console.log("MINI2@CORE BODY SOURCE ORIGINAL")
+        console.log(source)
+      }
 
       // class-transformer
       const instance = plainToInstance(ValidationClass, source, {
         enableImplicitConversion: true,
         exposeDefaultValues: true,
       });
+
+      if(logging){
+        console.log("MINI2@CORE BODY SOURCE TRANSFORMED")
+        console.log(instance)
+      }
 
       // class-validator
       const errors = await validate(instance as object, {
@@ -44,11 +55,6 @@ export default function validationMiddleware(
         });
         return; // <-- explicit return
       }
-
-      // validated* alanlarına yaz
-      if (type === 'body')   (req as any).validatedBody = instance;
-      if (type === 'query')  (req as any).validatedQuery = instance;
-      if (type === 'params') (req as any).validatedParams = instance;
 
       next();
       return; // <-- explicit return

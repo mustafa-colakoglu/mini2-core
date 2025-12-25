@@ -349,7 +349,7 @@ export function buildRouterFromController(controllerInstance: IController): IRou
       for (const t of order) {
         const klass = v[t];
         if (!klass) continue;
-        pushOnce(validationMiddlewares, validationMiddleware(klass, t));
+        pushOnce(validationMiddlewares, validationMiddleware(klass, t, v.logging));
       }
     }
 
