@@ -354,13 +354,16 @@ export function buildRouterFromController(controllerInstance: IController): IRou
     }
 
     const middlewares: RequestHandler[] = [];
+    if (otherHttpMiddlewares) {
+      const isPreMiddlwaresSorted = otherHttpMiddlewares.filter(item => item.isPre).sort((x,y) => x.order - y.order);
+      middlewares.push(...isPreMiddlwaresSorted.map(item => item.handler));
+    }
     if (validationMiddlewares.length) middlewares.push(...validationMiddlewares);
     if (authenticated) middlewares.push(authenticatedMiddleware as RequestHandler);
     if (permissions && permissions.length > 0) middlewares.push(authorizedMiddleware(permissions) as RequestHandler);
     if (otherHttpMiddlewares) {
-      const isPreMiddlwaresSorted = otherHttpMiddlewares.filter(item => item.isPre).sort((x,y) => x.order - y.order);
       const isNormalMiddlewares = otherHttpMiddlewares.filter(item => !item.isPre);
-      middlewares.push(...isPreMiddlwaresSorted.map(item => item.handler), ...isNormalMiddlewares.map(item => item.handler));
+      middlewares.push( ...isNormalMiddlewares.map(item => item.handler));
     }
 
     const method    = routeOptions.method!;

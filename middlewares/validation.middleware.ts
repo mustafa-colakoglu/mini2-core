@@ -18,7 +18,6 @@ export default function validationMiddleware(
         type === 'query' ? req.query :
         type === 'headers' ? req.headers :
                             req.params;
-      console.log(source)
 
       // class-transformer
       const instance = plainToInstance(ValidationClass, source, {
