@@ -19,7 +19,9 @@ import { authorizedMiddleware } from './middlewares/authorized.middleware';
 export type Method = 'get' | 'post' | 'put' | 'delete' | 'patch';
 
 export type IExtraData = Map<string, any>;
-export type ParameterSlot = 'req' | 'res' | 'next' | 'body' | 'query' | 'params';
+export type ParameterSlot = 'req' | 'res' | 'next' | 'body' | 'query' | 'params' | 'headers';
+
+export type RequestHandlerWithPreMiddlewareOptions = {handler:RequestHandler, isPre:boolean, order:number}
 
 export interface RouteOptions {
   method?: Method;
@@ -27,7 +29,7 @@ export interface RouteOptions {
   validations?: IValidation[];
   permissions?: string[];
   authenticated?: boolean;
-  otherHttpMiddlewares?: RequestHandler[];
+  otherHttpMiddlewares?: RequestHandlerWithPreMiddlewareOptions[];
   extraData?: IExtraData;
   name?: string;
 }
@@ -40,7 +42,7 @@ export interface RouteDefinition {
   validations: IValidation[];
   permissions: string[];
   authenticated?: boolean;
-  otherHttpMiddlewares: RequestHandler[];
+  otherHttpMiddlewares: RequestHandlerWithPreMiddlewareOptions[];
   extraData?: IExtraData;
   parameterIndices?: Partial<Record<ParameterSlot, number>>;
 }
@@ -185,6 +187,7 @@ export const keyOfNext = Symbol('next');
 export const keyOfBody = Symbol('body');
 export const keyOfQuery = Symbol('query');
 export const keyOfParams = Symbol('params');
+export const keyOfHeaders = Symbol('headers');
 
 /* ------------------------------------------------------------------ */
 /* Decorators                                                          */
@@ -298,8 +301,8 @@ export function authenticated(value: boolean = true) {
 export function authorized(value: string | string[]) {
   return httpMethod({ permissions: Array.isArray(value) ? value : [value] });
 }
-export function middleware(mw: RequestHandler) {
-  return httpMethod({ otherHttpMiddlewares: [mw] });
+export function middleware(mw: RequestHandler, isPre?:boolean, order?:number) {
+  return httpMethod({ otherHttpMiddlewares: [{handler:mw, isPre:!!isPre, order:order ?? 0}] });
 }
 export function custom<T>(key: string, value: T) {
   const extraData = new Map<string, T>();
@@ -314,6 +317,7 @@ export function next()  { return (t: any, k: string, i: number) => { Reflect.def
 export function body()  { return (t: any, k: string, i: number) => { Reflect.defineMetadata(keyOfBody,   i, t, k); RouteRegistry.setParameterIndex(t, k, 'body',   i); }; }
 export function query() { return (t: any, k: string, i: number) => { Reflect.defineMetadata(keyOfQuery,  i, t, k); RouteRegistry.setParameterIndex(t, k, 'query',  i); }; }
 export function params(){ return (t: any, k: string, i: number) => { Reflect.defineMetadata(keyOfParams, i, t, k); RouteRegistry.setParameterIndex(t, k, 'params', i); }; }
+export function headers(){ return (t: any, k: string, i: number) => { Reflect.defineMetadata(keyOfHeaders, i, t, k); RouteRegistry.setParameterIndex(t, k, 'headers', i); }; }
 
 /* ------------------------------------------------------------------ */
 /* Router Builder (metadata'yı prototype'tan okur)                     */
@@ -353,7 +357,11 @@ export function buildRouterFromController(controllerInstance: IController): IRou
     if (validationMiddlewares.length) middlewares.push(...validationMiddlewares);
     if (authenticated) middlewares.push(authenticatedMiddleware as RequestHandler);
     if (permissions && permissions.length > 0) middlewares.push(authorizedMiddleware(permissions) as RequestHandler);
-    if (otherHttpMiddlewares) middlewares.push(...otherHttpMiddlewares);
+    if (otherHttpMiddlewares) {
+      const isPreMiddlwaresSorted = otherHttpMiddlewares.filter(item => item.isPre).sort((x,y) => x.order - y.order);
+      const isNormalMiddlewares = otherHttpMiddlewares.filter(item => !item.isPre);
+      middlewares.push(...isPreMiddlwaresSorted.map(item => item.handler), ...isNormalMiddlewares.map(item => item.handler));
+    }
 
     const method    = routeOptions.method!;
     const routePath = routeOptions.path!;
