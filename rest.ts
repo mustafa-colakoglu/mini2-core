@@ -347,9 +347,9 @@ export function buildRouterFromController(controllerInstance: IController): IRou
     const order: Array<keyof IValidation> = ['params', 'query', 'body', 'headers'];
     for (const v of validations ?? []) {
       for (const t of order) {
-        const klass = v[t];
-        if (!klass) continue;
-        pushOnce(validationMiddlewares, validationMiddleware(klass, t, v.logging));
+        const validationClass = v[t];
+        if (!validationClass) continue;
+        pushOnce(validationMiddlewares, validationMiddleware(validationClass, t, v.logging));
       }
     }
 

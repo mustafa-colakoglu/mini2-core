@@ -20,6 +20,7 @@ export default function validationMiddleware(
         type === 'query' ? req.query :
         type === 'headers' ? req.headers :
                             req.params;
+                      
       if(logging){
         console.log("MINI2@CORE BODY SOURCE ORIGINAL")
         console.log(source)
@@ -55,7 +56,12 @@ export default function validationMiddleware(
         });
         return; // <-- explicit return
       }
-      (req as any)[type] = instance;
+      Object.defineProperty(req, type, {
+        value: instance,        // veya plain objeyi koy
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
       if(logging){
         console.log(`MINI2@CORE ASSIGNED INSTANCE TO ${type}`)
         console.log((req as any)[type])
