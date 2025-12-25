@@ -55,7 +55,7 @@ export default function validationMiddleware(
         });
         return; // <-- explicit return
       }
-
+      (req as any)[type] = instance;
       next();
       return; // <-- explicit return
     } catch (err: any) {
