@@ -275,6 +275,8 @@ describe("Test controller (integration)", () => {
         basePath: "/test",
       })
     );
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("GET /test/query -> 200 & returns query", async () => {
@@ -286,6 +288,8 @@ describe("Test controller (integration)", () => {
     expect(res_.body.query).toEqual(
       expect.objectContaining({ page: 2, limit: 10, q: "hello" })
     );
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("POST /test/create -> 201 & echoes header", async () => {
@@ -301,6 +305,8 @@ describe("Test controller (integration)", () => {
       expect.objectContaining({ title: "hello", order: 1 })
     );
     expect(res_.body.echo).toBe("hi");
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("PUT /test/:id -> 200", async () => {
@@ -312,6 +318,8 @@ describe("Test controller (integration)", () => {
     expect(res_.headers["x-handler"]).toBe("update");
     expect(res_.body.route).toBe("PUT /test/abc123");
     expect(res_.body.params).toEqual(expect.objectContaining({ id: "abc123" }));
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("PATCH /test/:id -> 200", async () => {
@@ -322,6 +330,8 @@ describe("Test controller (integration)", () => {
     expect(res_.status).toBe(200);
     expect(res_.headers["x-handler"]).toBe("patch");
     expect(res_.body.route).toBe("PATCH /test/xyz");
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("DELETE /test/:id without permission -> 403", async () => {
@@ -330,6 +340,8 @@ describe("Test controller (integration)", () => {
       .delete("/test/foo")
       .set("x-authenticated", "true"); // login var ama izin yok → ForbiddenException throw
     expect(res_.status).toBe(403);
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("DELETE /test/:id with admin permission -> 200", async () => {
@@ -341,12 +353,16 @@ describe("Test controller (integration)", () => {
     expect(res_.status).toBe(200);
     expect(res_.headers["x-handler"]).toBe("delete");
     expect(res_.body.route).toBe("DELETE /test/foo");
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("GET /test/secured without user -> 401", async () => {
     const app = makeApp(); // header yok → UnauthorizedException throw
     const res_ = await request(app).get("/test/secured");
     expect(res_.status).toBe(401);
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("GET /test/secured with user -> 200", async () => {
@@ -359,6 +375,8 @@ describe("Test controller (integration)", () => {
     expect(res_.status).toBe(200);
     expect(res_.headers["x-handler"]).toBe("secured");
     expect(res_.body.user).toEqual(expect.objectContaining({ id: "u2" }));
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("GET /test/custom -> 200 (custom middleware)", async () => {
@@ -367,6 +385,8 @@ describe("Test controller (integration)", () => {
     expect(res_.status).toBe(200);
     expect(res_.headers["x-handler"]).toBe("custom");
     expect(res_.body.customInjected).toBe(true);
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("GET /test/next-error -> 500 (next(err) path)", async () => {
@@ -375,6 +395,8 @@ describe("Test controller (integration)", () => {
     expect(res_.status).toBe(500);
     // Senin global handler generic gövde döndürüyor:
     expect(res_.body).toEqual({ errorId: 1, message: "Some error happen" });
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("GET /test/registry -> 200", async () => {
@@ -385,13 +407,18 @@ describe("Test controller (integration)", () => {
     expect(res_.body.basePath).toBe("/test");
     expect(Array.isArray(res_.body.routes)).toBe(true);
     expect(res_.body.routes.length).toBeGreaterThan(0);
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("GET /test/validate-header -> 400", async () => {
     const app = makeApp();
     const res_ = await request(app).get("/test/validate-header");
     expect(res_.status).toBe(400);
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
+
   it("GET /test/validate-header -> 400", async () => {
     const app = makeApp();
     const res_ = await request(app)
@@ -399,7 +426,10 @@ describe("Test controller (integration)", () => {
       .set("x-echo", "my-header-value")
       .set("x-mongo-id", "507f1f77bcf86cd799439www");
     expect(res_.status).toBe(400);
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
+
   it("GET /test/validate-header -> 200", async () => {
     const app = makeApp();
     const res_ = await request(app)
@@ -407,6 +437,8 @@ describe("Test controller (integration)", () => {
       .set("x-echo", "my-header-value")
       .set("x-mongo-id", "507f1f77bcf86cd799439011");
     expect(res_.status).toBe(200);
+    expect(res_.headers["x-trace-id"]).toBeDefined();
+    expect(typeof res_.headers["x-trace-id"]).toBe("string");
   });
 
   it("should include X-Trace-Id header in all responses", async () => {
