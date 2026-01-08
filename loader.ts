@@ -32,7 +32,13 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 
 	files.forEach((f) => {
 		const file = fs.readFileSync(f, 'utf8');
-		if (!file.startsWith('//mini-dont-auto-load')) require(f);
+		console.log(file);
+		if (!file.startsWith('//mini-dont-auto-load')) {
+			console.log('auto-loading', f);
+			require(f);
+		} else {
+			console.log('skipping', f);
+		}
 	});
 	return { files, count: files.length };
 }
