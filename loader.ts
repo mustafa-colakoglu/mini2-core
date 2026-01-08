@@ -1,6 +1,7 @@
 // load-injectables.ts
 import path from 'node:path';
 import fg from 'fast-glob';
+import fs from 'node:fs';
 export type LoadInjectablesOptions = {
 	srcDir?: string;
 	distDir?: string;
@@ -29,6 +30,9 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 		}
 	);
 
-	files.forEach((f) => require(f));
+	files.forEach((f) => {
+		const file = fs.readFileSync(f, 'utf8');
+		if (!file.startsWith('//mini-dont-auto-load')) require(f);
+	});
 	return { files, count: files.length };
 }

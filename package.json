@@ -7,6 +7,7 @@
 		"prepublishOnly": "npm run rebuild",
 		"dev": "ts-node index.ts",
 		"publish:npm": "npm run build && npm publish",
+		"publish:beta": "tsc && npm version prerelease --preid=beta && npm publish --tag beta",
 		"publish:patch": "tsc && npm version patch && npm publish",
 		"publish:minor": "tsc && npm version minor && npm publish",
 		"publish:major": "tsc && npm version major && npm publish"
