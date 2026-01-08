@@ -157,7 +157,7 @@ export class RouteRegistry {
 	static updateRoute(
 		target: any,
 		methodName: string,
-		updates: Partial<RouteDefinition>
+		updates: Omit<RouteDefinition, 'methodName'>
 	) {
 		const route = this.getOrCreateRoute(target, methodName);
 
@@ -236,20 +236,17 @@ export function controller(path: string, name?: string, moduleName?: string) {
 		const resolvedName = name ?? path;
 		const resolvedModuleName = moduleName ?? resolvedName;
 
-		// metadata'yı DOĞRUDAN orijinal constructor'a yaz
+		// metadata'yı DOĞRUDAN orijinal constructor'a ya	z
 		Reflect.defineMetadata(keyOfPath, path, constructor);
 		Reflect.defineMetadata(keyOfName, resolvedName, constructor);
 		Reflect.defineMetadata(keyOfModuleName, resolvedModuleName, constructor);
 
-		// registry'yi orijinal constructor için güncelle
 		RouteRegistry.setBasePath(
 			constructor as unknown as any,
 			path,
 			resolvedName,
 			resolvedModuleName
 		);
-
-		// ÖNEMLİ: sınıfı sarmalama! aynı constructor'ı döndür
 		return constructor;
 	};
 }
