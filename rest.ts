@@ -47,16 +47,8 @@ export interface RouteOptions {
 	name?: string;
 }
 
-export interface RouteDefinition {
+export interface RouteDefinition extends RouteOptions {
 	methodName: string;
-	method?: Method;
-	path?: string;
-	name?: string;
-	validations: IValidation[];
-	permissions: string[];
-	authenticated?: boolean;
-	otherHttpMiddlewares: RequestHandlerWithPreMiddlewareOptions[];
-	extraData?: IExtraData;
 	parameterIndices?: Partial<Record<ParameterSlot, number>>;
 }
 
@@ -170,7 +162,7 @@ export class RouteRegistry {
 		const route = this.getOrCreateRoute(target, methodName);
 
 		if (updates.validations && updates.validations.length) {
-			route.validations = [...route.validations, ...updates.validations];
+			route.validations = [...(route.validations ?? []), ...updates.validations];
 		}
 		if (updates.permissions && updates.permissions.length) {
 			route.permissions = Array.from(
