@@ -1,12 +1,13 @@
 import App from './app';
-import container from './container';
+import { container, AutoBind } from './container';
 import { IApp } from './interfaces/app.interface';
 import { MINI_TYPES } from './types';
 // Main Application class
 
 // Container Class ve instance için
-export *  from 'inversify';
+export * from 'inversify';
 export { container };
+export { AutoBind };
 export { IApp };
 export { App };
 export { MINI_TYPES };
