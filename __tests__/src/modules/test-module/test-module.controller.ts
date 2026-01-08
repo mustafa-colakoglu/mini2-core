@@ -75,7 +75,7 @@ const echoHeader: RequestHandler = (req, _res, next) => {
 @AutoBind(MINI_TYPES.IController)
 @controller('/test', 'Test Controller', 'Test Module')
 // @ts-ignore
-class Test extends Controller implements IController {
+class TestController extends Controller implements IController {
 	constructor() {
 		super();
 	}
