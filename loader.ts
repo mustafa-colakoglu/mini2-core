@@ -17,9 +17,10 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 	const patterns = opts?.patterns ?? ['**/*.(ts|js)'];
 
 	const isProd = process.env.NODE_ENV === 'production';
-	const baseDir = path.join(
-		opts?.runOnlySrc ? srcDir : isProd ? distDir : srcDir
+	const baseDir = path.resolve(
+		path.join(opts?.runOnlySrc ? srcDir : isProd ? distDir : srcDir)
 	);
+	if (opts?.logging) console.log('baseDir', baseDir);
 	// TS dev: .ts, prod: .js
 	const exts = isProd ? ['js', 'cjs', 'mjs'] : ['ts', 'mts', 'cts'];
 
