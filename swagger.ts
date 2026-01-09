@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import swaggerUi from 'swagger-ui-express';
 import { Express } from 'express';
-import { keyOfPath, keyOfRouteOptions, RouteOptions } from './rest';
+import { keyOfPath, keyOfRouteOptions, RouteOptions } from './notations';
 import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
 
 export interface SwaggerOptions {
@@ -74,7 +74,8 @@ export class SwaggerIntegration {
 				}
 
 				const fullPath =
-	controllerPath.replace(/\/$/, '') + routeOptions.path.replace(/:([a-zA-Z0-9_]+)/g, '{$1}');
+					controllerPath.replace(/\/$/, '') +
+					routeOptions.path.replace(/:([a-zA-Z0-9_]+)/g, '{$1}');
 
 				const method = routeOptions.method.toLowerCase();
 				if (!paths[fullPath]) {

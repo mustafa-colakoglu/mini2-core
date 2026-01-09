@@ -1,4 +1,4 @@
-import { IController } from '../rest';
+import { IController } from '../notations';
 import { IConfig } from './config.interface';
 import { Express } from 'express';
 import { Server } from 'http';

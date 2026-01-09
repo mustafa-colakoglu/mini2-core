@@ -4,7 +4,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { IApp } from './interfaces/app.interface';
 import { IConfig } from './interfaces/config.interface';
-import { buildApp, IController } from './notations/controller';
+import { buildApp, IController } from './notations';
 import { Container, injectable } from 'inversify';
 import { SwaggerIntegration } from './swagger';
 import { MINI_TYPES } from './types';
