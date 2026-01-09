@@ -170,3 +170,135 @@ describe('Test controller (integration)', () => {
 		expect(res_.status).toBe(200);
 	});
 });
+describe('Test2 controller (integration)', () => {
+	it('GET /test2 -> 200', async () => {
+		const res_ = await request(app).get('/test2');
+		expect(res_.status).toBe(200);
+		expect(res_.headers['x-handler']).toBe('root');
+		expect(res_.body).toEqual(
+			expect.objectContaining({
+				ok: true,
+				route: 'GET /test2',
+				basePath: '/test2',
+			})
+		);
+	});
+
+	it('GET /test2/query -> 200 & returns query', async () => {
+		const res_ = await request(app).get('/test2/query?page=2&limit=10&q=hello');
+		expect(res_.status).toBe(200);
+		expect(res_.headers['x-handler']).toBe('query');
+		expect(res_.body.route).toBe('GET /test2/query');
+		expect(res_.body.query).toEqual(
+			expect.objectContaining({ page: 2, limit: 10, q: 'hello' })
+		);
+	});
+
+	it('POST /test2/create -> 201 & echoes header', async () => {
+		const res_ = await request(app)
+			.post('/test2/create')
+			.set('x-echo', 'hi')
+			.send({ title: 'hello', description: 'world', order: 1 });
+		expect(res_.status).toBe(201);
+		expect(res_.headers['x-handler']).toBe('create');
+		expect(res_.body.route).toBe('POST /test2/create');
+		expect(res_.body.body).toEqual(
+			expect.objectContaining({ title: 'hello', order: 1 })
+		);
+		expect(res_.body.echo).toBe('hi');
+	});
+
+	it('PUT /test2/:id -> 200', async () => {
+		const res_ = await request(app)
+			.put('/test2/abc123')
+			.send({ title: 'updated', description: 'desc2', order: 9 });
+		expect(res_.status).toBe(200);
+		expect(res_.headers['x-handler']).toBe('update');
+		expect(res_.body.route).toBe('PUT /test2/abc123');
+		expect(res_.body.params).toEqual(expect.objectContaining({ id: 'abc123' }));
+	});
+
+	it('PATCH /test2/:id -> 200', async () => {
+		const res_ = await request(app)
+			.patch('/test2/xyz')
+			.send({ description: 'patched' });
+		expect(res_.status).toBe(200);
+		expect(res_.headers['x-handler']).toBe('patch');
+		expect(res_.body.route).toBe('PATCH /test2/xyz');
+	});
+
+	it('DELETE /test2/:id without permission -> 403', async () => {
+		const res_ = await request(app)
+			.delete('/test2/foo')
+			.set('x-authenticated', 'true'); // login var ama izin yok → ForbiddenException throw
+		expect(res_.status).toBe(403);
+	});
+
+	it('DELETE /test2/:id with admin permission -> 200', async () => {
+		const res_ = await request(app)
+			.delete('/test2/foo')
+			.set('x-authenticated', 'true')
+			.set('x-user-permissions', 'admin'); // admin → geç
+		expect(res_.status).toBe(200);
+		expect(res_.headers['x-handler']).toBe('delete');
+		expect(res_.body.route).toBe('DELETE /test2/foo');
+	});
+
+	it('GET /test2/secured without user -> 401', async () => {
+		const res_ = await request(app).get('/test2/secured');
+		expect(res_.status).toBe(401);
+	});
+
+	it('GET /test2/secured with user -> 200', async () => {
+		const res_ = await request(app)
+			.get('/test2/secured')
+			.set('x-authenticated', 'true')
+			.set('x-user-id', 'u2')
+			.set('x-user-permissions', 'reader');
+		expect(res_.status).toBe(200);
+		expect(res_.headers['x-handler']).toBe('secured');
+		expect(res_.body.user).toEqual(expect.objectContaining({ id: 'u2' }));
+	});
+
+	it('GET /test2/custom -> 200 (custom middleware)', async () => {
+		const res_ = await request(app).get('/test2/custom');
+		expect(res_.status).toBe(200);
+		expect(res_.headers['x-handler']).toBe('custom');
+		expect(res_.body.customInjected).toBe(true);
+	});
+
+	it('GET /test2/next-error -> 500 (next(err) path)', async () => {
+		const res_ = await request(app).get('/test2/next-error');
+		expect(res_.status).toBe(500);
+		// Senin global handler generic gövde döndürüyor:
+		expect(res_.body).toEqual({ errorId: 1, message: 'Some error happen' });
+	});
+
+	it('GET /test2/registry -> 200', async () => {
+		const res_ = await request(app).get('/test2/registry');
+		expect(res_.status).toBe(200);
+		expect(res_.headers['x-handler']).toBe('registry');
+		expect(res_.body.basePath).toBe('/test2');
+		expect(Array.isArray(res_.body.routes)).toBe(true);
+		expect(res_.body.routes.length).toBeGreaterThan(0);
+	});
+
+	it('GET /test2/validate-header -> 400', async () => {
+		const res_ = await request(app).get('/test2/validate-header');
+		expect(res_.status).toBe(400);
+	});
+	it('GET /test2/validate-header -> 400', async () => {
+		const res_ = await request(app)
+			.get('/test2/validate-header')
+			.set('x-echo', 'my-header-value')
+			.set('x-mongo-id', '507f1f77bcf86cd799439www');
+		expect(res_.status).toBe(400);
+	});
+	it('GET /test2/validate-header -> 200', async () => {
+		const res_ = await request(app)
+			.get('/test2/validate-header')
+			.set('x-echo', 'my-header-value')
+			.set('x-mongo-id', '507f1f77bcf86cd799439011');
+		expect(res_.status).toBe(200);
+	});
+});

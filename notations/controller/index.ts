@@ -196,7 +196,7 @@ export function controller(path: string, name?: string, moduleName?: string) {
 			resolvedModuleName
 		);
 		if ((globalThis as any).MINI_AUTOLOAD) {
-			return AutoBind(MINI_TYPES.IController)(constructor);
+			return AutoBind(MINI_TYPES.IController, { scope: 'Transient' })(constructor);
 		}
 		return constructor;
 	};

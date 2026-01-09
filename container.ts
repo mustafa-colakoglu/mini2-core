@@ -35,9 +35,8 @@ export function AutoBind(
 
 export const bindDiscovered = () => {
 	const reg = getRegistry();
-
 	for (const b of reg) {
-		if (container.isBound(b.token)) continue;
+		if (container.isBound(b.token) && b.scope === 'Singleton') continue;
 
 		const binding = container.bind(b.token).to(b.target);
 
