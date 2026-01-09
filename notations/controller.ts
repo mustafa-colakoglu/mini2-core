@@ -7,13 +7,15 @@ import type {
 	IRouter,
 	RequestHandler,
 } from 'express';
-import { arrayUnify } from './utils/array-unify';
-import { IResponseBuilder } from './response-builder';
+import { arrayUnify } from '../utils/array-unify';
+import { IResponseBuilder } from '../response-builder';
 import validationMiddleware, {
 	IValidation,
-} from './middlewares/validation.middleware';
-import { authenticatedMiddleware } from './middlewares/authenticated.middleware';
-import { authorizedMiddleware } from './middlewares/authorized.middleware';
+} from '../middlewares/validation.middleware';
+import { authenticatedMiddleware } from '../middlewares/authenticated.middleware';
+import { authorizedMiddleware } from '../middlewares/authorized.middleware';
+import { AutoBind } from '../container';
+import { MINI_TYPES } from '../types';
 
 /* ------------------------------------------------------------------ */
 /* Türler                                                              */
@@ -247,7 +249,8 @@ export function controller(path: string, name?: string, moduleName?: string) {
 			resolvedName,
 			resolvedModuleName
 		);
-		return constructor;
+		console.log('autoloading controller', constructor.name);
+		return AutoBind(MINI_TYPES.IController)(constructor);
 	};
 }
 

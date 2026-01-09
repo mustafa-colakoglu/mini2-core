@@ -24,7 +24,6 @@ import {
 	Controller,
 	IController,
 	ResponseBuilder,
-	MINI_TYPES,
 } from '../../../../index';
 
 import {
@@ -37,7 +36,6 @@ import {
 	IsMongoId,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { AutoBind } from '../../../../index';
 
 /* ----------------------------- Class-Validator DTOs ----------------------------- */
 class CreateDto {
@@ -72,7 +70,6 @@ const echoHeader: RequestHandler = (req, _res, next) => {
 };
 
 /* ------------------------------- Controller ------------------------------ */
-@AutoBind(MINI_TYPES.IController)
 @controller('/test', 'Test Controller', 'Test Module')
 // @ts-ignore
 class TestController extends Controller implements IController {

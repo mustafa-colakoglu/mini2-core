@@ -39,7 +39,7 @@ export * from './types';
 export * from './response-builder';
 
 // REST utilities
-export * from './rest';
+export * from './notations/controller';
 
 // Swagger integration
 export * from './swagger';
