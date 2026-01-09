@@ -18,14 +18,14 @@ class App implements IApp {
 	container: Container;
 	controllers: IController[];
 	server!: Server;
+	loadedInjectables: boolean = false;
 	constructor() {
 		this.app = express();
 
 		this.controllers = [];
 		this.container = container;
 	}
-
-	async init(config: IConfig, loadInjectablesOptions?: LoadInjectablesOptions) {
+	loadInjectables(loadInjectablesOptions?: LoadInjectablesOptions) {
 		if (!loadInjectablesOptions?.autoload) {
 			// Deprecation warning if autoload is NOT enabled
 			console.warn(
@@ -37,8 +37,14 @@ class App implements IApp {
 			(globalThis as any).MINI_AUTOLOAD = true;
 			loadInjectables(loadInjectablesOptions);
 			bindDiscovered();
+			this.loadedInjectables = true;
 		}
-		this.controllers = container.getAll(MINI_TYPES.IController);
+	}
+	async init(config: IConfig, loadInjectablesOptions?: LoadInjectablesOptions) {
+		this.loadInjectables(loadInjectablesOptions);
+		this.expressAppInitialize(config);
+	}
+	expressAppInitialize(config: IConfig) {
 		this.app.use(express.json());
 		this.app.use(express.urlencoded({ extended: true }));
 		this.app.use(cors());
@@ -59,6 +65,7 @@ class App implements IApp {
 			docsPath: '/api-docs',
 			jsonPath: '/api-docs.json',
 		});
+		this.controllers = container.getAll(MINI_TYPES.IController);
 		swaggerIntegration.generateSwaggerSpec(this.controllers);
 		swaggerIntegration.setupSwagger(this.app);
 		buildApp(this.app, this.controllers);
