@@ -23,7 +23,17 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 	];
 	const workingDirectory = opts?.workingDirectory;
 	if (!workingDirectory) throw new Error('Working directory is required');
-	const baseDir = path.resolve(path.join(workingDirectory));
+	const baseDir = path.resolve(workingDirectory);
+	if (logging) {
+		console.log('------ AUTO LOADING OPTIONS ------');
+		console.log({
+			logging,
+			patterns,
+			extensions,
+			baseDir,
+		});
+	}
+
 	if (logging) {
 		console.log('------ AUTO LOADING BASE DIR ------');
 		console.log(baseDir);
