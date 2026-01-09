@@ -27,6 +27,7 @@ class App implements IApp {
 
 	async init(config: IConfig, loadInjectablesOptions?: LoadInjectablesOptions) {
 		if (loadInjectablesOptions?.autoload) {
+			(globalThis as any).MINI_AUTOLOAD = true;
 			loadInjectables(loadInjectablesOptions);
 			bindDiscovered();
 		}

@@ -195,8 +195,10 @@ export function controller(path: string, name?: string, moduleName?: string) {
 			resolvedName,
 			resolvedModuleName
 		);
-		console.log('autoloading controller', constructor.name);
-		return AutoBind(MINI_TYPES.IController)(constructor);
+		if ((globalThis as any).MINI_AUTOLOAD) {
+			return AutoBind(MINI_TYPES.IController)(constructor);
+		}
+		return constructor;
 	};
 }
 
