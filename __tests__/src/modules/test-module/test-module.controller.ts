@@ -1,8 +1,6 @@
-// __tests__/app.test.ts
 import 'reflect-metadata';
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 
-// Framework tek dosyan (B) — yolu gerekirse değiştir
 import {
 	controller,
 	get,
