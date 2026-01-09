@@ -70,7 +70,7 @@ const echoHeader: RequestHandler = (req, _res, next) => {
 /* ------------------------------- Controller ------------------------------ */
 @controller('/test', 'Test Controller', 'Test Module')
 // @ts-ignore
-class TestController extends Controller implements IController {
+export class TestController extends Controller implements IController {
 	constructor() {
 		super();
 	}
