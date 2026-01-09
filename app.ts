@@ -26,8 +26,10 @@ class App implements IApp {
 	}
 
 	async init(config: IConfig, loadInjectablesOptions?: LoadInjectablesOptions) {
-		loadInjectables(loadInjectablesOptions);
-		bindDiscovered();
+		if (loadInjectablesOptions?.autoload) {
+			loadInjectables(loadInjectablesOptions);
+			bindDiscovered();
+		}
 		this.controllers = container.getAll(MINI_TYPES.IController);
 		this.app.use(express.json());
 		this.app.use(express.urlencoded({ extended: true }));

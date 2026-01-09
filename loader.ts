@@ -3,12 +3,15 @@ import path from 'node:path';
 import fg from 'fast-glob';
 import fs from 'node:fs';
 export type LoadInjectablesOptions = {
+	autoload?: boolean;
 	srcDir?: string;
 	distDir?: string;
 	patterns?: string[];
 	runOnlySrc?: boolean;
+	logging?: boolean;
 };
 export function loadInjectables(opts?: LoadInjectablesOptions) {
+	if (!opts?.autoload) return;
 	const srcDir = opts?.srcDir ?? 'src';
 	const distDir = opts?.distDir ?? 'dist';
 	const patterns = opts?.patterns ?? ['**/*.(ts|js)'];
@@ -32,12 +35,11 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 
 	files.forEach((f) => {
 		const file = fs.readFileSync(f, 'utf8');
-		console.log(file);
 		if (!file.startsWith('//mini-dont-auto-load')) {
-			console.log('auto-loading', f);
+			if (opts?.logging) console.log('auto-loading', f);
 			require(f);
 		} else {
-			console.log('skipping', f);
+			if (opts?.logging) console.log('skipping', f);
 		}
 	});
 	return { files, count: files.length };

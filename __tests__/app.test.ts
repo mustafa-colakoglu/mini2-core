@@ -15,16 +15,23 @@ beforeAll(async () => {
 			applicationName: 'Test Application',
 		},
 		{
+			autoload: true,
 			srcDir: __dirname + '/src',
 			distDir: 'dist',
 			patterns: ['**/*.(ts|js)'],
+			logging: true,
 		}
 	);
 	await appFromContainer.afterInit();
 	app = appFromContainer.getApp();
 });
 afterAll(async () => {
-	await appFromContainer.server.close();
+	return new Promise((resolve) => {
+		appFromContainer.server.close(() => {
+			console.log('server closed');
+			resolve(true);
+		});
+	});
 });
 /* --------------------------------- Tests ---------------------------------- */
 describe('Test controller (integration)', () => {
