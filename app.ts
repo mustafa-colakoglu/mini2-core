@@ -26,6 +26,13 @@ class App implements IApp {
 	}
 
 	async init(config: IConfig, loadInjectablesOptions?: LoadInjectablesOptions) {
+		if (!loadInjectablesOptions?.autoload) {
+			// Deprecation warning if autoload is NOT enabled
+			console.warn(
+				'[Deprecation Warning] The non-autoload mode is deprecated and will be removed in future versions. ' +
+					'Please enable autoload via loadInjectablesOptions.autoload = true to ensure controllers and services are properly discovered.'
+			);
+		}
 		if (loadInjectablesOptions?.autoload) {
 			(globalThis as any).MINI_AUTOLOAD = true;
 			loadInjectables(loadInjectablesOptions);
