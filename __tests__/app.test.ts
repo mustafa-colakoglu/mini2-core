@@ -16,9 +16,17 @@ beforeAll(async () => {
 		},
 		{
 			autoload: true,
-			srcDir: __dirname + '/src',
-			distDir: 'dist',
-			patterns: ['**/*.(ts|js)'],
+			...(process.env.NODE_ENV === 'production'
+				? {
+						extensions: ['js', 'cjs', 'mjs'],
+						workingDirectory: __dirname + '/dist',
+						patterns: ['**/*.(js|cjs|mjs)'],
+				  }
+				: {
+						workingDirectory: __dirname + '/src',
+						extensions: ['ts', 'mts', 'cts'],
+						patterns: ['**/*.(ts|js)'],
+				  }),
 			logging: true,
 		}
 	);

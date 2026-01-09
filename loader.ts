@@ -4,33 +4,35 @@ import fg from 'fast-glob';
 import fs from 'node:fs';
 export type LoadInjectablesOptions = {
 	autoload?: boolean;
-	srcDir?: string;
-	distDir?: string;
+	workingDirectory?: string;
 	patterns?: string[];
-	runOnlySrc?: boolean;
 	logging?: boolean;
+	extensions?: string[];
 };
 export function loadInjectables(opts?: LoadInjectablesOptions) {
 	if (!opts?.autoload) return;
-	const srcDir = opts?.srcDir ?? 'src';
-	const distDir = opts?.distDir ?? 'dist';
+	const logging = opts?.logging ?? false;
 	const patterns = opts?.patterns ?? ['**/*.(ts|js)'];
-
-	const isProd = process.env.NODE_ENV === 'production';
-	const baseDir = path.resolve(
-		path.join(opts?.runOnlySrc ? srcDir : isProd ? distDir : srcDir)
-	);
-	if (opts?.logging) {
+	const extensions = opts?.extensions ?? [
+		'ts',
+		'mts',
+		'cts',
+		'js',
+		'cjs',
+		'mjs',
+	];
+	const workingDirectory = opts?.workingDirectory;
+	if (!workingDirectory) throw new Error('Working directory is required');
+	const baseDir = path.resolve(path.join(workingDirectory));
+	if (logging) {
 		console.log('------ AUTO LOADING BASE DIR ------');
 		console.log(baseDir);
 		console.log('------ AUTO LOADING PATTERNS ------');
 		console.log(patterns);
 	}
 	// TS dev: .ts, prod: .js
-	const exts = isProd ? ['js', 'cjs', 'mjs'] : ['ts', 'mts', 'cts'];
-
 	const files = fg.sync(
-		exts.flatMap((ext) =>
+		extensions.flatMap((ext) =>
 			patterns.map((p) => path.join(baseDir, p.replace('(ts|js)', ext)))
 		),
 		{
@@ -39,18 +41,26 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 		}
 	);
 
-	if (opts?.logging) {
+	if (logging) {
 		console.log('------ AUTO LOADING FILES ------');
 		console.log(files);
 	}
-	files.forEach((f) => {
-		const file = fs.readFileSync(f, 'utf8');
-		if (!file.startsWith('//mini-dont-auto-load')) {
-			if (opts?.logging) console.log('auto-loading', f);
-			require(f);
-		} else {
-			if (opts?.logging) console.log('skipping', f);
-		}
-	});
+	if (files.length > 0) {
+		files.forEach((f) => {
+			const file = fs.readFileSync(f, 'utf8');
+			if (!file.startsWith('//mini-dont-auto-load')) {
+				if (logging) {
+					console.log('auto-loading', f);
+				}
+				require(f);
+			} else {
+				if (logging) {
+					console.log('skipping', f);
+				}
+			}
+		});
+	} else {
+		if (opts?.logging) console.log('------ NO FILES FOUND TO AUTO LOAD ------');
+	}
 	return { files, count: files.length };
 }
