@@ -22,7 +22,7 @@ function getRegistry(): DiscoveredBinding[] {
 	return g[DISCOVERY_KEY] as DiscoveredBinding[];
 }
 
-export function AutoBind(
+export function autoBind(
 	token: DiscoveredBinding['token'],
 	opts?: { scope?: Scope; priority?: number }
 ) {
