@@ -1,4 +1,3 @@
-// di-registry.ts
 import type { ServiceIdentifier } from 'inversify';
 import { Container } from 'inversify';
 export const container = new Container({
@@ -16,7 +15,6 @@ export type DiscoveredBinding = {
 
 const DISCOVERY_KEY = Symbol.for('DI_DISCOVERY_REGISTRY');
 
-// Global registry: import edilen her dosyada tek bir listeye yazabilelim
 function getRegistry(): DiscoveredBinding[] {
 	const g = globalThis as any;
 	if (!g[DISCOVERY_KEY]) g[DISCOVERY_KEY] = [];
@@ -39,7 +37,6 @@ export const bindDiscovered = () => {
 	const reg = getRegistry();
 
 	for (const b of reg) {
-		// aynı token birden fazla kez gelirse tekrar bind etmeyelim
 		if (container.isBound(b.token)) continue;
 
 		const binding = container.bind(b.token).to(b.target);
