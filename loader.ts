@@ -20,7 +20,12 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 	const baseDir = path.resolve(
 		path.join(opts?.runOnlySrc ? srcDir : isProd ? distDir : srcDir)
 	);
-	if (opts?.logging) console.log('baseDir', baseDir);
+	if (opts?.logging) {
+		console.log('------ AUTO LOADING BASE DIR ------');
+		console.log(baseDir);
+		console.log('------ AUTO LOADING PATTERNS ------');
+		console.log(patterns);
+	}
 	// TS dev: .ts, prod: .js
 	const exts = isProd ? ['js', 'cjs', 'mjs'] : ['ts', 'mts', 'cts'];
 
@@ -34,6 +39,10 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 		}
 	);
 
+	if (opts?.logging) {
+		console.log('------ AUTO LOADING FILES ------');
+		console.log(files);
+	}
 	files.forEach((f) => {
 		const file = fs.readFileSync(f, 'utf8');
 		if (!file.startsWith('//mini-dont-auto-load')) {
