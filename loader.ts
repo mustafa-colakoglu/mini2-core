@@ -14,12 +14,12 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 	const logging = opts?.logging ?? false;
 	const patterns = opts?.patterns ?? ['**/*.(ts|js)'];
 	const extensions = opts?.extensions ?? [
-		'ts',
-		'mts',
-		'cts',
-		'js',
-		'cjs',
-		'mjs',
+		'.ts',
+		'.mts',
+		'.cts',
+		'.js',
+		'.cjs',
+		'.mjs',
 	];
 	const workingDirectory = opts?.workingDirectory;
 	if (!workingDirectory) throw new Error('Working directory is required');
@@ -33,17 +33,14 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 			baseDir,
 		});
 	}
-
-	if (logging) {
-		console.log('------ AUTO LOADING BASE DIR ------');
-		console.log(baseDir);
-		console.log('------ AUTO LOADING PATTERNS ------');
-		console.log(patterns);
-	}
-	// TS dev: .ts, prod: .js
 	const files = fg.sync(
 		extensions.flatMap((ext) =>
-			patterns.map((p) => path.join(baseDir, p.replace('(ts|js)', ext)))
+			patterns.map((p) => {
+				// Pattern'deki .(ts|js) gibi placeholder'ları extension ile değiştir
+				// Nokta dahil replace ediyoruz: .(ts|js) → .ts
+				const cleanPattern = p.replace(/\.\([^)]+\)/, ext);
+				return path.join(baseDir, cleanPattern);
+			})
 		),
 		{
 			onlyFiles: true,

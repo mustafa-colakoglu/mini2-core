@@ -18,13 +18,13 @@ beforeAll(async () => {
 			autoload: true,
 			...(process.env.NODE_ENV === 'production'
 				? {
-						extensions: ['js', 'cjs', 'mjs'],
+						extensions: ['.js', '.cjs', '.mjs'],
 						workingDirectory: __dirname + '/dist',
 						patterns: ['**/*.(js|cjs|mjs)'],
 				  }
 				: {
 						workingDirectory: __dirname + '/src',
-						extensions: ['ts', 'mts', 'cts'],
+						extensions: ['.ts', '.mts', '.cts'],
 						patterns: ['**/*.(ts|js)'],
 				  }),
 			logging: true,
