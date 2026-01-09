@@ -8,6 +8,7 @@ export type LoadInjectablesOptions = {
 	patterns?: string[];
 	logging?: boolean;
 	extensions?: string[];
+	ignoreExtensions?: string[];
 };
 export function loadInjectables(opts?: LoadInjectablesOptions) {
 	if (!opts?.autoload) return;
@@ -23,6 +24,7 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 	];
 	const workingDirectory = opts?.workingDirectory;
 	if (!workingDirectory) throw new Error('Working directory is required');
+	const ignoreExtensions = opts?.ignoreExtensions ?? [];
 	const baseDir = path.resolve(workingDirectory);
 	if (logging) {
 		console.log('------ AUTO LOADING OPTIONS ------');
@@ -30,17 +32,20 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 			logging,
 			patterns,
 			extensions,
+			ignoreExtensions,
 			baseDir,
 		});
 	}
 	const files = fg.sync(
 		extensions.flatMap((ext) =>
-			patterns.map((p) => {
-				// Pattern'deki .(ts|js) gibi placeholder'ları extension ile değiştir
-				// Nokta dahil replace ediyoruz: .(ts|js) → .ts
-				const cleanPattern = p.replace(/\.\([^)]+\)/, ext);
-				return path.join(baseDir, cleanPattern);
-			})
+			patterns
+				.map((p) => {
+					// Pattern'deki .(ts|js) gibi placeholder'ları extension ile değiştir
+					// Nokta dahil replace ediyoruz: .(ts|js) → .ts
+					const cleanPattern = p.replace(/\.\([^)]+\)/, ext);
+					return path.join(baseDir, cleanPattern);
+				})
+				.filter((f) => !ignoreExtensions.some((ie) => f.endsWith(ie)))
 		),
 		{
 			onlyFiles: true,
