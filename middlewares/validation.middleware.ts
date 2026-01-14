@@ -69,12 +69,22 @@ export default function validationMiddleware(
 				});
 				return; // <-- explicit return
 			}
-			Object.defineProperty(req, type, {
-				value: instance, // veya plain objeyi koy
-				writable: true,
-				configurable: true,
-				enumerable: true,
-			});
+			if (type === 'headers') {
+				// Keep original req.headers to avoid dropping other headers set by previous middlewares
+				Object.defineProperty(req as any, 'validatedHeaders', {
+					value: instance,
+					writable: true,
+					configurable: true,
+					enumerable: false,
+				});
+			} else {
+				Object.defineProperty(req, type, {
+					value: instance, // veya plain objeyi koy
+					writable: true,
+					configurable: true,
+					enumerable: true,
+				});
+			}
 			if (logging) {
 				console.log(`MINI2@CORE ASSIGNED INSTANCE TO ${type}`);
 				console.log((req as any)[type]);
