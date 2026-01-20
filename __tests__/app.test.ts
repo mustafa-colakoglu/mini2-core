@@ -334,5 +334,6 @@ describe('Test controller (integration)', () => {
     .set('x-echo', 'my-header-value')
     .set('x-mongo-id', '507f1f77bcf86cd79943dsada9011');
     expect(res_.status).toBe(401);
+    expect(res_.body).toEqual({message:"Not Authorized"})
   });
 });
