@@ -9,7 +9,8 @@ import {
   validate, authenticated, authorized, middleware, custom,
   req, res, next, body, query, params,
   Controller, IController, buildApp,
-  ResponseBuilder
+  ResponseBuilder,
+  UnauthorizedException
 } from '../index';
 
 import { IsString, IsOptional, IsInt, Min, Max, IsNotEmpty, IsMongoId } from 'class-validator';
@@ -146,6 +147,18 @@ class Test extends Controller implements IController {
   @get("/validate-header", "Validate header")
   @validate({ headers: TestHeaderValidationDto })
   public validateHeader(@req() req:Request): ResponseBuilder<any> {
+    const headers = req.headers as any;
+    const echoHeader = headers['x-echo'] ?? null;
+    const mongoId = headers['x-mongo-id'] ?? null;
+    console.log('Header validation:', { echoHeader, mongoId });
+    return new ResponseBuilder().ok({
+      route: 'GET /test/validate-header',
+      echo: echoHeader ?? null,
+    });
+  }
+  @get("/validate-header-custom-error", "Validate header with custom http error")
+  @validate({ headers: TestHeaderValidationDto, customHttpError:new UnauthorizedException({message:"Not Authorized"}) })
+  public validateHeaderCustomError(@req() req:Request): ResponseBuilder<any> {
     const headers = req.headers as any;
     const echoHeader = headers['x-echo'] ?? null;
     const mongoId = headers['x-mongo-id'] ?? null;
@@ -313,5 +326,13 @@ describe('Test controller (integration)', () => {
     .set('x-echo', 'my-header-value')
     .set('x-mongo-id', '507f1f77bcf86cd799439011');
     expect(res_.status).toBe(200);
+  });
+  it('GET /test/validate-header-custom-error -> 401', async () => {
+    const app = makeApp();
+    const res_ = await request(app)
+    .get('/test/validate-header-custom-error')
+    .set('x-echo', 'my-header-value')
+    .set('x-mongo-id', '507f1f77bcf86cd79943dsada9011');
+    expect(res_.status).toBe(401);
   });
 });

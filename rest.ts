@@ -483,7 +483,8 @@ export function buildRouterFromController(
 						t,
 						v.logging,
 						v.transformOptions,
-						v.validatorOptions
+						v.validatorOptions,
+						v.customHttpError,
 					)
 				);
 			}
