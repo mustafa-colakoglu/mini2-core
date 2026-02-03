@@ -7,6 +7,7 @@ import { MINI_TYPES } from './types';
 // Container Class ve instance için
 export * from 'inversify';
 export { container };
+export { autoBind };
 export { autoBind as AutoBind };
 export { IApp };
 export { App };
