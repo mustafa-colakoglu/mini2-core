@@ -1,8 +1,9 @@
 {
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "noEmitOnError": false
-  },
-  "include": ["./**/*.ts", "../jest.setup.ts"],
-  "exclude": []
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"noEmitOnError": false,
+		"emitDecoratorMetadata": true
+	},
+	"include": ["./**/*.ts", "../jest.setup.ts"],
+	"exclude": []
 }
