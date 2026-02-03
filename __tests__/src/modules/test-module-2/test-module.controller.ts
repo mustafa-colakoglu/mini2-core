@@ -22,6 +22,7 @@ import {
 	Controller,
 	IController,
 	ResponseBuilder,
+	UnauthorizedException,
 } from '../../../../index';
 
 import {
@@ -214,6 +215,18 @@ export class TestController2 extends Controller implements IController {
 		console.log('Header validation:', { echoHeader, mongoId });
 		return new ResponseBuilder().ok({
 			route: 'GET /test2/validate-header',
+			echo: echoHeader ?? null,
+		});
+	}
+	@get("/validate-header-custom-error", "Validate header with custom http error")
+	@validate({ headers: TestHeaderValidationDto, customHttpError:new UnauthorizedException({message:"Not Authorized"}) })
+	public validateHeaderCustomError(@req() req:Request): ResponseBuilder<any> {
+		const headers = req.headers as any;
+		const echoHeader = headers['x-echo'] ?? null;
+		const mongoId = headers['x-mongo-id'] ?? null;
+		console.log('Header validation:', { echoHeader, mongoId });
+		return new ResponseBuilder().ok({
+			route: 'GET /test/validate-header',
 			echo: echoHeader ?? null,
 		});
 	}

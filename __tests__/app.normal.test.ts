@@ -171,4 +171,12 @@ describe('Test controller (integration)', () => {
 			.set('x-mongo-id', '507f1f77bcf86cd799439011');
 		expect(res_.status).toBe(200);
 	});
+	it('GET /test/validate-header-custom-error -> 401', async () => {
+		const res_ = await request(app)
+			.get('/test/validate-header-custom-error')
+			.set('x-echo', 'my-header-value')
+			.set('x-mongo-id', '507f1f77bcf86cd79943dsada9011');
+		expect(res_.status).toBe(401);
+		expect(res_.body).toEqual({message:"Not Authorized"})
+	});
 });

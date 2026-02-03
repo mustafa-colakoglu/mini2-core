@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { plainToInstance, TransformOptions } from 'class-transformer';
 import { validate, ValidatorOptions } from 'class-validator';
+import HttpException from '../../../expections/http.expection';
 export type IValidation = {
 	body?: any;
 	params?: any;
@@ -9,13 +10,15 @@ export type IValidation = {
 	logging?: boolean;
 	transformOptions?: TransformOptions;
 	validatorOptions?: ValidatorOptions;
+	customHttpError?:HttpException;
 };
 export default function validationMiddleware(
 	ValidationClass: new (...args: any[]) => any,
 	type: keyof IValidation,
 	logging?: boolean,
 	transformOptions?: TransformOptions,
-	validatorOptions?: ValidatorOptions
+	validatorOptions?: ValidatorOptions,
+	customHttpError?:HttpException,
 ): RequestHandler {
 	const handler: RequestHandler = async (
 		req: Request,
@@ -59,14 +62,19 @@ export default function validationMiddleware(
 			});
 
 			if (errors.length > 0) {
-				res.status(400).json({
-					ok: false,
-					message: 'Validation error',
-					errors: errors.map((e) => ({
-						property: e.property,
-						constraints: e.constraints,
-					})),
-				});
+				if(customHttpError){
+					res.status(customHttpError.code).json(customHttpError.messageJson);
+				}
+				else{
+					res.status(400).json({
+						ok: false,
+						message: 'Validation error',
+						errors: errors.map((e) => ({
+							property: e.property,
+							constraints: e.constraints,
+						})),
+					});
+				}
 				return; // <-- explicit return
 			}
 			Object.defineProperty(req, type, {
@@ -82,14 +90,19 @@ export default function validationMiddleware(
 			next();
 			return; // <-- explicit return
 		} catch (err: any) {
-			res.status(400).json({
-				ok: false,
-				message: 'Validation middleware failed',
-				error: err?.message ?? String(err),
-			});
+			if(customHttpError){
+				res.status(customHttpError.code).json(customHttpError.messageJson);
+			}
+			else{
+				res.status(400).json({
+					ok: false,
+					message: 'Validation middleware failed',
+					error: err?.message ?? String(err),
+				});
+			}
 			return; // <-- explicit return
 		}
 	};
 
-	return handler; // <-- handler'ı açıkça döndür
+	return handler;
 }
