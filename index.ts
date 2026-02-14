@@ -1,27 +1,28 @@
 import App from './app';
-import container from './container';
+import { container, autoBind } from './container';
 import { IApp } from './interfaces/app.interface';
 import { MINI_TYPES } from './types';
 // Main Application class
 
 // Container Class ve instance için
-export *  from 'inversify';
+export * from 'inversify';
 export { container };
+export { autoBind };
+const AutoBind = autoBind;
+export { AutoBind };
 export { IApp };
 export { App };
 export { MINI_TYPES };
 
 // Interfaces
 export * from './interfaces/app.interface';
-export * from './interfaces/authenticated.interface';
+export * from './notations/controller/interfaces/authenticated.interface';
 export * from './interfaces/config.interface';
-export * from './interfaces/queue.interface';
-export * from './interfaces/repository.interface';
 
 // Middlewares
-export * from './middlewares/authenticated.middleware';
-export * from './middlewares/authorized.middleware';
-export * from './middlewares/validation.middleware';
+export * from './notations/controller/middlewares/authenticated.middleware';
+export * from './notations/controller/middlewares/authorized.middleware';
+export * from './notations/controller/middlewares/validation.middleware';
 
 // Utils
 export * from './utils/array-unify';
@@ -38,7 +39,7 @@ export * from './types';
 export * from './response-builder';
 
 // REST utilities
-export * from './rest';
+export * from './notations';
 
 // Swagger integration
 export * from './swagger';

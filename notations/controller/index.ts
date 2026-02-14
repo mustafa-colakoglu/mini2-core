@@ -7,73 +7,24 @@ import type {
 	IRouter,
 	RequestHandler,
 } from 'express';
-import { arrayUnify } from './utils/array-unify';
-import { IResponseBuilder } from './response-builder';
+import { arrayUnify } from '../../utils/array-unify';
+import { IResponseBuilder } from '../../response-builder';
 import validationMiddleware, {
 	IValidation,
 } from './middlewares/validation.middleware';
 import { authenticatedMiddleware } from './middlewares/authenticated.middleware';
 import { authorizedMiddleware } from './middlewares/authorized.middleware';
-
-/* ------------------------------------------------------------------ */
-/* Türler                                                              */
-/* ------------------------------------------------------------------ */
-export type Method = 'get' | 'post' | 'put' | 'delete' | 'patch';
-
-export type IExtraData = Map<string, any>;
-export type ParameterSlot =
-	| 'req'
-	| 'res'
-	| 'next'
-	| 'body'
-	| 'query'
-	| 'params'
-	| 'headers';
-
-export type RequestHandlerWithPreMiddlewareOptions = {
-	handler: RequestHandler;
-	isPre: boolean;
-	order: number;
-};
-
-export interface RouteOptions {
-	method?: Method;
-	path?: string;
-	validations?: IValidation[];
-	permissions?: string[];
-	authenticated?: boolean;
-	otherHttpMiddlewares?: RequestHandlerWithPreMiddlewareOptions[];
-	extraData?: IExtraData;
-	name?: string;
-}
-
-export interface RouteDefinition extends RouteOptions {
-	methodName: string;
-	parameterIndices?: Partial<Record<ParameterSlot, number>>;
-}
-
-export interface RouteDefinitions {
-	basePath: string;
-	controllerName?: string;
-	moduleName?: string;
-	routes: RouteDefinition[];
-}
-
-export interface IControllerClassConstructor {
-	new (...args: any[]): any;
-	__routeDefinitions?: RouteDefinitions;
-}
-
-/* ------------------------------------------------------------------ */
-/* IController + Controller (temel sınıf)                              */
-/* ------------------------------------------------------------------ */
-export interface IController {
-	path: string;
-	name: string;
-	moduleName: string;
-	getRouteDefinition(methodName: string): RouteDefinition;
-	getRouteDefinitions(): RouteDefinitions;
-}
+import { autoBind } from '../../container';
+import { MINI_TYPES } from '../../types';
+import {
+	IController,
+	IControllerClassConstructor,
+	IExtraData,
+	ParameterSlot,
+	RouteDefinition,
+	RouteDefinitions,
+	RouteOptions,
+} from './rest.types';
 
 export class Controller implements IController {
 	path: string;
@@ -108,9 +59,6 @@ export class Controller implements IController {
 	}
 }
 
-/* ------------------------------------------------------------------ */
-/* RouteRegistry                                                       */
-/* ------------------------------------------------------------------ */
 export class RouteRegistry {
 	private static getCtor(target: any): IControllerClassConstructor {
 		return typeof target === 'function'
@@ -247,6 +195,9 @@ export function controller(path: string, name?: string, moduleName?: string) {
 			resolvedName,
 			resolvedModuleName
 		);
+		if ((globalThis as any).MINI_AUTOLOAD) {
+			return autoBind(MINI_TYPES.IController, { scope: 'Transient' })(constructor);
+		}
 		return constructor;
 	};
 }
@@ -359,7 +310,6 @@ export function patch(path: string, name?: string) {
 	return httpMethod({ path, method: 'patch', name: name ?? path });
 }
 
-/* Sugar decorators */
 export function validate(options: IValidation | IValidation[]) {
 	return httpMethod({
 		validations: Array.isArray(options) ? options : [options],
@@ -386,7 +336,6 @@ export function custom<T>(key: string, value: T) {
 	return httpMethod({ extraData: extraData as IExtraData });
 }
 
-/* Param dekoratörleri (prototype'a yazar) */
 export function req() {
 	return (t: any, k: string, i: number) => {
 		Reflect.defineMetadata(keyOfReq, i, t, k);
@@ -429,10 +378,6 @@ export function headers() {
 		RouteRegistry.setParameterIndex(t, k, 'headers', i);
 	};
 }
-
-/* ------------------------------------------------------------------ */
-/* Router Builder (metadata'yı prototype'tan okur)                     */
-/* ------------------------------------------------------------------ */
 export function buildRouterFromController(
 	controllerInstance: IController
 ): IRouter {
@@ -564,7 +509,6 @@ export function buildRouterFromController(
 
 	return router;
 }
-
 export function buildApp(app: Express, controllers: IController[]) {
 	for (const instance of controllers) {
 		const router = buildRouterFromController(instance);
