@@ -1,15 +1,20 @@
 import 'reflect-metadata';
 import swaggerUi from 'swagger-ui-express';
-import { Express } from 'express';
+import { Express, Request, Response, NextFunction } from 'express';
 import { keyOfPath, keyOfRouteOptions, RouteOptions } from './notations';
 import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
 import { SwaggerOptions } from 'swagger-ui-express';
+import { ISwaggerBasicAuth } from './interfaces/config.interface';
+
+export interface ISwaggerIntegrationOptions extends SwaggerOptions {
+	basicAuth?: ISwaggerBasicAuth;
+}
 
 export class SwaggerIntegration {
 	private swaggerSpec: any;
-	private options: SwaggerOptions;
+	private options: ISwaggerIntegrationOptions;
 
-	constructor(options: SwaggerOptions = {}) {
+	constructor(options: ISwaggerIntegrationOptions = {}) {
 		this.options = {
 			title: 'Mini Framework API',
 			description: 'API documentation for Mini Framework',
@@ -299,10 +304,38 @@ export class SwaggerIntegration {
 		return { $ref: `#/components/schemas/${className}` };
 	}
 
+	private basicAuthMiddleware(req: Request, res: Response, next: NextFunction) {
+		const auth = req.headers.authorization;
+
+		if (!auth || !auth.startsWith('Basic ')) {
+			res.setHeader('WWW-Authenticate', 'Basic realm="Swagger Documentation"');
+			res.status(401).send('Authentication required');
+			return;
+		}
+
+		const credentials = Buffer.from(auth.substring(6), 'base64').toString();
+		const [username, password] = credentials.split(':');
+
+		if (
+			username === this.options.basicAuth?.username &&
+			password === this.options.basicAuth?.password
+		) {
+			next();
+		} else {
+			res.setHeader('WWW-Authenticate', 'Basic realm="Swagger Documentation"');
+			res.status(401).send('Invalid credentials');
+		}
+	}
+
 	public setupSwagger(app: Express) {
-		// Swagger UI middleware
+		const authMiddleware = this.options.basicAuth
+			? this.basicAuthMiddleware.bind(this)
+			: (_req: Request, _res: Response, next: NextFunction) => next();
+
+		// Swagger UI middleware with optional basic auth
 		app.use(
 			this.options.docsPath!,
+			authMiddleware,
 			swaggerUi.serve,
 			swaggerUi.setup(this.swaggerSpec, {
 				explorer: true,
@@ -318,14 +351,17 @@ export class SwaggerIntegration {
 			}),
 		);
 
-		// JSON endpoint for OpenAPI spec
-		app.get(this.options.jsonPath!, (_req, res) => {
+		// JSON endpoint for OpenAPI spec with optional basic auth
+		app.get(this.options.jsonPath!, authMiddleware, (_req, res) => {
 			res.setHeader('Content-Type', 'application/json');
 			res.send(this.swaggerSpec);
 		});
 
 		console.log(`📚 Swagger UI available at: ${this.options.docsPath}`);
 		console.log(`📄 OpenAPI JSON spec available at: ${this.options.jsonPath}`);
+		if (this.options.basicAuth) {
+			console.log(`🔒 Swagger endpoints protected with Basic Authentication`);
+		}
 	}
 
 	public getSwaggerSpec() {

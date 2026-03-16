@@ -49,14 +49,15 @@ class App implements IApp {
 			title: config.applicationName,
 			description: `API documentation for ${config.applicationName}`,
 			version: '1.0.0',
-			servers: [
+			servers: config.swaggerServers ?? [
 				{
 					url: `http://${config.host}:${config.port}`,
 					description: 'Development server',
 				},
 			],
-			docsPath: '/api-docs',
-			jsonPath: '/api-docs.json',
+			docsPath: config.swaggerDocsPath ?? '/api-docs',
+			jsonPath: config.swaggerJsonPath ?? '/api-docs.json',
+			...(config.swaggerBasicAuth && { basicAuth: config.swaggerBasicAuth }),
 		});
 		this.controllers = container.getAll(MINI_TYPES.IController);
 		swaggerIntegration.generateSwaggerSpec(this.controllers);
