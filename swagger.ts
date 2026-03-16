@@ -5,6 +5,7 @@ import { keyOfPath, keyOfRouteOptions, RouteOptions } from './notations';
 import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
 import { SwaggerOptions } from 'swagger-ui-express';
 import { ISwaggerBasicAuth } from './interfaces/config.interface';
+import { inferSchema } from './utils/infer-schema';
 
 export interface ISwaggerIntegrationOptions extends SwaggerOptions {
 	basicAuth?: ISwaggerBasicAuth;
@@ -116,53 +117,69 @@ export class SwaggerIntegration {
 
 					// Add request body from example
 					if (example.request?.body) {
+						const bodySchema = inferSchema(example.request.body);
 						operation.requestBody = {
 							required: true,
 							content: {
 								'application/json': {
-									schema: this.generateSchemaFromValidation(example.request.body),
+									schema: bodySchema,
+									example: example.request.body,
 								},
 							},
 						};
 					}
 
-					// Add query parameters from example
-					if (example.request?.query) {
-						const querySchema = this.generateSchemaFromValidation(example.request.query);
-						if (!operation.parameters) operation.parameters = [];
-						operation.parameters.push({
-							name: 'query',
-							in: 'query',
-							required: false,
-							schema: querySchema,
-						});
-					}
+					// Initialize parameters array
+					if (!operation.parameters) operation.parameters = [];
 
-					// Add path parameters from example
-					if (example.request?.params) {
-						const paramsSchema = this.generateSchemaFromValidation(example.request.params);
-						if (pathParams.length > 0) {
-							operation.parameters = pathParams.map((param) => ({
+					// Add path parameters from example (if provided in example)
+					if (example.request?.params && pathParams.length > 0) {
+						const paramsSchema = inferSchema(example.request.params);
+						pathParams.forEach((param) => {
+							operation.parameters!.push({
 								name: param,
 								in: 'path',
 								required: true,
-								schema: paramsSchema,
-							}));
+								schema: paramsSchema.properties?.[param] || { type: 'string' },
+								example: (example.request!.params as any)[param],
+							});
+						});
+					}
+
+					// Add query parameters from example
+					if (example.request?.query) {
+						const querySchema = inferSchema(example.request.query);
+						
+						// Add each query parameter separately
+						if (querySchema.properties) {
+							Object.keys(querySchema.properties).forEach((paramName) => {
+								operation.parameters!.push({
+									name: paramName,
+									in: 'query',
+									required: querySchema.required?.includes(paramName) ?? false,
+									schema: querySchema.properties[paramName],
+									example: (example.request!.query as any)[paramName],
+								});
+							});
 						}
 					}
 
 					// Add header parameters from example
 					if (example.request?.headers) {
-						const headersSchema = this.generateSchemaFromValidation(
-							example.request.headers,
-						);
-						if (!operation.parameters) operation.parameters = [];
-						operation.parameters.push({
-							name: 'headers',
-							in: 'header',
-							required: false,
-							schema: headersSchema,
-						});
+						const headersSchema = inferSchema(example.request.headers);
+						
+						// Add each header separately
+						if (headersSchema.properties) {
+							Object.keys(headersSchema.properties).forEach((headerName) => {
+								operation.parameters!.push({
+									name: headerName,
+									in: 'header',
+									required: headersSchema.required?.includes(headerName) ?? false,
+									schema: headersSchema.properties[headerName],
+									example: (example.request!.headers as any)[headerName],
+								});
+							});
+						}
 					}
 				} else {
 					// Fallback to validations if no examples provided
@@ -189,12 +206,20 @@ export class SwaggerIntegration {
 					const responses = example.response as Record<string, any>;
 					Object.keys(responses).forEach((statusCode) => {
 						const responseData = responses[statusCode];
+						const responseSchema = inferSchema(responseData.data);
+						
 						operation.responses[statusCode] = {
 							description: responseData.description,
 							content: {
 								[responseData.contentType || 'application/json']: {
-									schema: { type: 'object' },
-									example: responseData.example,
+									schema: responseSchema,
+									example: responseData.data,
+									examples: {
+										default: {
+											summary: responseData.description,
+											value: responseData.data,
+										},
+									},
 								},
 							},
 						};

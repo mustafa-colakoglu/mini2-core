@@ -100,12 +100,16 @@ export class TestController extends Controller implements IController {
 		examples: [
 			{
 				request: {
-					body: CreateDto,
+					body: {
+						title: 'Test Item',
+						description: 'Test Description',
+						order: 1,
+					},
 				},
 				response: {
 					201: {
 						description: 'Item created successfully',
-						example: {
+						data: {
 							ok: true,
 							route: 'POST /test/create',
 							body: { title: 'Test Item', description: 'Test Description', order: 1 },
@@ -114,7 +118,7 @@ export class TestController extends Controller implements IController {
 					},
 					400: {
 						description: 'Validation error',
-						example: {
+						data: {
 							error: 'Validation failed',
 							validationErrors: [
 								{ field: 'title', errors: ['title should not be empty'] },
@@ -141,15 +145,28 @@ export class TestController extends Controller implements IController {
 		examples: [
 			{
 				request: {
-					body: UpdateDto,
-					params: IdParams,
-					query: QueryDto,
-					headers: TestHeaderValidationDto,
+					body: {
+						title: 'Updated Title',
+						description: 'Updated Description',
+						order: 5,
+					},
+					params: {
+						id: '123',
+					},
+					query: {
+						page: 1,
+						limit: 10,
+						q: 'test',
+					},
+					headers: {
+						'x-echo': 'my-header-value',
+						'x-mongo-id': '507f1f77bcf86cd799439011',
+					},
 				},
 				response: {
 					200: {
 						description: 'Item updated successfully',
-						example: {
+						data: {
 							ok: true,
 							route: 'PUT /test/123',
 							params: { id: '123' },
@@ -159,7 +176,7 @@ export class TestController extends Controller implements IController {
 					},
 					400: {
 						description: 'Validation error',
-						example: {
+						data: {
 							error: 'Validation failed',
 							validationErrors: [
 								{ field: 'title', errors: ['title should not be empty'] },
@@ -168,14 +185,14 @@ export class TestController extends Controller implements IController {
 					},
 					401: {
 						description: 'Unauthorized',
-						example: {
+						data: {
 							error: 'Unauthorized',
 							message: 'Missing or invalid authentication token',
 						},
 					},
 					404: {
 						description: 'Not found',
-						example: {
+						data: {
 							error: 'Not Found',
 							message: 'Item with id 123 not found',
 						},

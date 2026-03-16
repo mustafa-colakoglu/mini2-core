@@ -100,12 +100,16 @@ export class TestController2 extends Controller implements IController {
 		examples: [
 			{
 				request: {
-					body: CreateDto,
+					body: {
+						title: 'Module 2 Item',
+						description: 'Test from Module 2',
+						order: 2,
+					},
 				},
 				response: {
 					201: {
 						description: 'Item created successfully in module 2',
-						example: {
+						data: {
 							ok: true,
 							route: 'POST /test2/create',
 							body: { title: 'Module 2 Item', description: 'Test from Module 2', order: 2 },
@@ -114,7 +118,7 @@ export class TestController2 extends Controller implements IController {
 					},
 					400: {
 						description: 'Validation error',
-						example: {
+						data: {
 							error: 'Validation failed',
 							validationErrors: [
 								{ field: 'title', errors: ['title should not be empty'] },
@@ -141,15 +145,28 @@ export class TestController2 extends Controller implements IController {
 		examples: [
 			{
 				request: {
-					body: UpdateDto,
-					params: IdParams,
-					query: QueryDto,
-					headers: TestHeaderValidationDto,
+					body: {
+						title: 'Updated in Module 2',
+						description: 'Module 2 Update',
+						order: 10,
+					},
+					params: {
+						id: '456',
+					},
+					query: {
+						page: 2,
+						limit: 20,
+						q: 'module2',
+					},
+					headers: {
+						'x-echo': 'module2-header',
+						'x-mongo-id': '507f1f77bcf86cd799439011',
+					},
 				},
 				response: {
 					200: {
 						description: 'Item updated successfully in module 2',
-						example: {
+						data: {
 							ok: true,
 							route: 'PUT /test2/456',
 							params: { id: '456' },
@@ -159,7 +176,7 @@ export class TestController2 extends Controller implements IController {
 					},
 					400: {
 						description: 'Validation error',
-						example: {
+						data: {
 							error: 'Validation failed',
 							validationErrors: [
 								{ field: 'title', errors: ['title should not be empty'] },
@@ -168,14 +185,14 @@ export class TestController2 extends Controller implements IController {
 					},
 					401: {
 						description: 'Unauthorized',
-						example: {
+						data: {
 							error: 'Unauthorized',
 							message: 'Missing or invalid authentication token',
 						},
 					},
 					404: {
 						description: 'Not found',
-						example: {
+						data: {
 							error: 'Not Found',
 							message: 'Item with id 456 not found in module 2',
 						},

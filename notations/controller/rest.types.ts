@@ -90,26 +90,26 @@ export type HttpStatusCode =
 	| 510 // Not Extended
 	| 511; // Network Authentication Required;
 
-export type AtLeastOne<T> = {
-	[K in keyof T]: Required<Pick<T, K>> & Partial<Omit<T, K>>;
-}[keyof T];
-
-export type ResponseStatusMap = {
-	[key in HttpStatusCode]?: {
-		description: string;
-		example: any;
-		contentType?: string;
-	};
-};
-
-export interface IRequestResponseExample {
+export interface IRequestResponseExample<
+	TReqBody = any,
+	TReqParams = any,
+	TReqQuery = any,
+	TReqHeaders = any,
+	TResponses extends Record<number, any> = Record<number, any>
+> {
 	request?: {
-		body?: any;
-		params?: any;
-		query?: any;
-		headers?: any;
+		body?: TReqBody;
+		params?: TReqParams;
+		query?: TReqQuery;
+		headers?: TReqHeaders;
 	};
-	response: AtLeastOne<ResponseStatusMap>;
+	response: {
+		[K in keyof TResponses]: {
+			description: string;
+			data: TResponses[K];
+			contentType?: string;
+		};
+	};
 }
 
 export interface RouteOptions {

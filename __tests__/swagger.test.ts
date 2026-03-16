@@ -81,10 +81,18 @@ describe('Swagger JSON Integration', () => {
 			expect(postCreatePath).toBeDefined();
 			expect(postCreatePath.requestBody).toBeDefined();
 			expect(postCreatePath.requestBody.content['application/json']).toBeDefined();
-			expect(postCreatePath.requestBody.content['application/json'].schema.$ref).toContain('CreateDto');
 			
-			// Check that CreateDto exists in components
-			expect(spec.components.schemas.CreateDto).toBeDefined();
+			// Check inferred schema structure
+			const schema = postCreatePath.requestBody.content['application/json'].schema;
+			expect(schema.type).toBe('object');
+			expect(schema.properties).toBeDefined();
+			expect(schema.properties.title).toEqual({ type: 'string' });
+			expect(schema.properties.order).toEqual({ type: 'integer' });
+			expect(schema.required).toContain('title');
+			
+			// Check example
+			const example = postCreatePath.requestBody.content['application/json'].example;
+			expect(example.title).toBe('Test Item');
 		});
 
 		it('has 201 response with correct example', async () => {
@@ -95,12 +103,19 @@ describe('Swagger JSON Integration', () => {
 			expect(postCreatePath.responses['201']).toBeDefined();
 			expect(postCreatePath.responses['201'].description).toBe('Item created successfully');
 			expect(postCreatePath.responses['201'].content['application/json']).toBeDefined();
-			expect(postCreatePath.responses['201'].content['application/json'].example).toMatchObject({
+			
+			// Check both example and examples (Swagger UI and Postman compatibility)
+			const responseContent = postCreatePath.responses['201'].content['application/json'];
+			expect(responseContent.example).toMatchObject({
 				ok: true,
 				route: 'POST /test/create'
 			});
-			expect(postCreatePath.responses['201'].content['application/json'].example.body).toBeDefined();
-			expect(postCreatePath.responses['201'].content['application/json'].example.body.title).toBe('Test Item');
+			expect(responseContent.examples).toBeDefined();
+			expect(responseContent.examples.default.value).toMatchObject({
+				ok: true,
+				route: 'POST /test/create'
+			});
+			expect(responseContent.example.body.title).toBe('Test Item');
 		});
 
 		it('has 400 response with validation error', async () => {
@@ -110,9 +125,14 @@ describe('Swagger JSON Integration', () => {
 			
 			expect(postCreatePath.responses['400']).toBeDefined();
 			expect(postCreatePath.responses['400'].description).toBe('Validation error');
-			expect(postCreatePath.responses['400'].content['application/json'].example).toBeDefined();
-			expect(postCreatePath.responses['400'].content['application/json'].example.error).toBe('Validation failed');
-			expect(postCreatePath.responses['400'].content['application/json'].example.validationErrors).toBeDefined();
+			
+			const responseContent = postCreatePath.responses['400'].content['application/json'];
+			expect(responseContent.example).toBeDefined();
+			expect(responseContent.example.error).toBe('Validation failed');
+			expect(responseContent.example.validationErrors).toBeDefined();
+			
+			// Check Postman compatibility
+			expect(responseContent.examples.default.value.error).toBe('Validation failed');
 		});
 	});
 
@@ -124,15 +144,41 @@ describe('Swagger JSON Integration', () => {
 			
 			expect(putUpdatePath).toBeDefined();
 			
-			// Check request body (UpdateDto)
+			// Check request body schema
 			expect(putUpdatePath.requestBody).toBeDefined();
-			expect(putUpdatePath.requestBody.content['application/json'].schema.$ref).toContain('UpdateDto');
+			const bodySchema = putUpdatePath.requestBody.content['application/json'].schema;
+			expect(bodySchema.type).toBe('object');
+			expect(bodySchema.properties.title).toBeDefined();
+			expect(bodySchema.properties.order).toEqual({ type: 'integer' });
 			
-			// Check components exist
-			expect(spec.components.schemas.UpdateDto).toBeDefined();
-			expect(spec.components.schemas.IdParams).toBeDefined();
-			expect(spec.components.schemas.QueryDto).toBeDefined();
-			expect(spec.components.schemas.TestHeaderValidationDto).toBeDefined();
+			// Check body example
+			const bodyExample = putUpdatePath.requestBody.content['application/json'].example;
+			expect(bodyExample.title).toBe('Updated Title');
+			
+			// Check parameters (params, query, headers)
+			expect(putUpdatePath.parameters).toBeDefined();
+			expect(putUpdatePath.parameters.length).toBeGreaterThan(0);
+			
+			// Check if path param exists
+			const pathParam = putUpdatePath.parameters.find((p: any) => p.in === 'path' && p.name === 'id');
+			expect(pathParam).toBeDefined();
+			if (pathParam.example !== undefined) {
+				expect(pathParam.example).toBe('123');
+			}
+			
+			// Check if query params exist (page, limit, q)
+			const pageParam = putUpdatePath.parameters.find((p: any) => p.in === 'query' && p.name === 'page');
+			const limitParam = putUpdatePath.parameters.find((p: any) => p.in === 'query' && p.name === 'limit');
+			const qParam = putUpdatePath.parameters.find((p: any) => p.in === 'query' && p.name === 'q');
+			expect(pageParam).toBeDefined();
+			expect(limitParam).toBeDefined();
+			expect(qParam).toBeDefined();
+			
+			// Check if headers exist
+			const echoHeader = putUpdatePath.parameters.find((p: any) => p.in === 'header' && p.name === 'x-echo');
+			const mongoIdHeader = putUpdatePath.parameters.find((p: any) => p.in === 'header' && p.name === 'x-mongo-id');
+			expect(echoHeader).toBeDefined();
+			expect(mongoIdHeader).toBeDefined();
 		});
 
 		it('has all response examples (200, 400, 401, 404)', async () => {
@@ -171,7 +217,16 @@ describe('Swagger JSON Integration', () => {
 			expect(postCreatePath).toBeDefined();
 			expect(postCreatePath.requestBody).toBeDefined();
 			expect(postCreatePath.requestBody.content['application/json']).toBeDefined();
-			expect(postCreatePath.requestBody.content['application/json'].schema.$ref).toContain('CreateDto');
+			
+			// Check inferred schema
+			const schema = postCreatePath.requestBody.content['application/json'].schema;
+			expect(schema.type).toBe('object');
+			expect(schema.properties).toBeDefined();
+			expect(schema.properties.title).toEqual({ type: 'string' });
+			
+			// Check example
+			const example = postCreatePath.requestBody.content['application/json'].example;
+			expect(example.title).toBe('Module 2 Item');
 		});
 
 		it('has 201 response with correct example', async () => {
@@ -210,9 +265,15 @@ describe('Swagger JSON Integration', () => {
 			
 			expect(putUpdatePath).toBeDefined();
 			
-			// Check request body (UpdateDto)
+			// Check request body schema
 			expect(putUpdatePath.requestBody).toBeDefined();
-			expect(putUpdatePath.requestBody.content['application/json'].schema.$ref).toContain('UpdateDto');
+			const bodySchema = putUpdatePath.requestBody.content['application/json'].schema;
+			expect(bodySchema.type).toBe('object');
+			expect(bodySchema.properties).toBeDefined();
+			
+			// Check parameters exist
+			expect(putUpdatePath.parameters).toBeDefined();
+			expect(putUpdatePath.parameters.length).toBeGreaterThan(0);
 		});
 
 		it('has all response examples (200, 400, 401, 404)', async () => {
