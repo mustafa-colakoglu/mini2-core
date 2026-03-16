@@ -96,7 +96,35 @@ export class TestController extends Controller implements IController {
 		res.json({ ok: true, route: 'GET /test/query', query: queryObj });
 	}
 
-	@post('/create', 'Create')
+	@post('/create', 'Create', {
+		examples: [
+			{
+				request: {
+					body: CreateDto,
+				},
+				response: {
+					201: {
+						description: 'Item created successfully',
+						example: {
+							ok: true,
+							route: 'POST /test/create',
+							body: { title: 'Test Item', description: 'Test Description', order: 1 },
+							echo: null,
+						},
+					},
+					400: {
+						description: 'Validation error',
+						example: {
+							error: 'Validation failed',
+							validationErrors: [
+								{ field: 'title', errors: ['title should not be empty'] },
+							],
+						},
+					},
+				},
+			},
+		],
+	})
 	@validate({ body: CreateDto })
 	@middleware(echoHeader)
 	public create(@body() bodyObj: CreateDto, @res() res: Response): void {
@@ -109,7 +137,53 @@ export class TestController extends Controller implements IController {
 		});
 	}
 
-	@put('/:id', 'Update')
+	@put('/:id', 'Update', {
+		examples: [
+			{
+				request: {
+					body: UpdateDto,
+					params: IdParams,
+					query: QueryDto,
+					headers: TestHeaderValidationDto,
+				},
+				response: {
+					200: {
+						description: 'Item updated successfully',
+						example: {
+							ok: true,
+							route: 'PUT /test/123',
+							params: { id: '123' },
+							body: { title: 'Updated Title', description: 'Updated Description', order: 5 },
+							query: { page: 1, limit: 10, q: 'test' },
+						},
+					},
+					400: {
+						description: 'Validation error',
+						example: {
+							error: 'Validation failed',
+							validationErrors: [
+								{ field: 'title', errors: ['title should not be empty'] },
+							],
+						},
+					},
+					401: {
+						description: 'Unauthorized',
+						example: {
+							error: 'Unauthorized',
+							message: 'Missing or invalid authentication token',
+						},
+					},
+					404: {
+						description: 'Not found',
+						example: {
+							error: 'Not Found',
+							message: 'Item with id 123 not found',
+						},
+					},
+				},
+			},
+		],
+	})
 	@validate([{ params: IdParams }, { body: UpdateDto }])
 	public update(
 		@params() paramsObj: IdParams,

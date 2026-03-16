@@ -230,6 +230,9 @@ export function httpMethod(newOptions: RouteOptions) {
 			)
 		);
 		const name = newOptions.name ?? existingOptions.name;
+		const examples = arrayUnify(
+			(newOptions.examples ?? []).concat(existingOptions.examples ?? [])
+		);
 
 		const extraData: IExtraData =
 			existingOptions.extraData ?? new Map<string, any>();
@@ -273,6 +276,7 @@ export function httpMethod(newOptions: RouteOptions) {
 		if (otherHttpMiddlewares.length)
 			mergedOptions.otherHttpMiddlewares = otherHttpMiddlewares;
 		if (name !== undefined) mergedOptions.name = name;
+		if (examples.length) mergedOptions.examples = examples;
 		if (extraData && extraData.size > 0) mergedOptions.extraData = extraData;
 
 		// NOT: method/param dekoratör metadataları **prototype** üzerinde tutuluyor
@@ -294,20 +298,20 @@ export function httpMethod(newOptions: RouteOptions) {
 }
 
 /* HTTP method sugar */
-export function get(path: string, name?: string) {
-	return httpMethod({ path, method: 'get', name: name ?? path });
+export function get(path: string, name?: string, options?: Omit<RouteOptions, 'path' | 'method' | 'name'>) {
+	return httpMethod({ path, method: 'get', name: name ?? path, ...options });
 }
-export function post(path: string, name?: string) {
-	return httpMethod({ path, method: 'post', name: name ?? path });
+export function post(path: string, name?: string, options?: Omit<RouteOptions, 'path' | 'method' | 'name'>) {
+	return httpMethod({ path, method: 'post', name: name ?? path, ...options });
 }
-export function put(path: string, name?: string) {
-	return httpMethod({ path, method: 'put', name: name ?? path });
+export function put(path: string, name?: string, options?: Omit<RouteOptions, 'path' | 'method' | 'name'>) {
+	return httpMethod({ path, method: 'put', name: name ?? path, ...options });
 }
-export function del(path: string, name?: string) {
-	return httpMethod({ path, method: 'delete', name: name ?? path });
+export function del(path: string, name?: string, options?: Omit<RouteOptions, 'path' | 'method' | 'name'>) {
+	return httpMethod({ path, method: 'delete', name: name ?? path, ...options });
 }
-export function patch(path: string, name?: string) {
-	return httpMethod({ path, method: 'patch', name: name ?? path });
+export function patch(path: string, name?: string, options?: Omit<RouteOptions, 'path' | 'method' | 'name'>) {
+	return httpMethod({ path, method: 'patch', name: name ?? path, ...options });
 }
 
 export function validate(options: IValidation | IValidation[]) {

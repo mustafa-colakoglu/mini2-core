@@ -3,16 +3,7 @@ import swaggerUi from 'swagger-ui-express';
 import { Express } from 'express';
 import { keyOfPath, keyOfRouteOptions, RouteOptions } from './notations';
 import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
-
-export interface SwaggerOptions {
-	title?: string;
-	description?: string;
-	version?: string;
-	servers?: { url: string; description?: string }[];
-	docsPath?: string;
-	jsonPath?: string;
-	components?: any;
-}
+import { SwaggerOptions } from 'swagger-ui-express';
 
 export class SwaggerIntegration {
 	private swaggerSpec: any;
@@ -48,7 +39,7 @@ export class SwaggerIntegration {
 		controllers.forEach((controller) => {
 			const controllerPath = Reflect.getMetadata(
 				keyOfPath,
-				controller.constructor
+				controller.constructor,
 			);
 			if (!controllerPath) {
 				console.log(`❌ No path metadata found for ${controller.constructor.name}`);
@@ -56,14 +47,14 @@ export class SwaggerIntegration {
 			}
 
 			const allProperties = Object.getOwnPropertyNames(
-				Object.getPrototypeOf(controller)
+				Object.getPrototypeOf(controller),
 			);
 
 			allProperties.forEach((property) => {
 				const routeOptions: RouteOptions = Reflect.getMetadata(
 					keyOfRouteOptions,
 					controller,
-					property
+					property,
 				);
 
 				if (!routeOptions || !routeOptions.path || !routeOptions.method) {
@@ -114,42 +105,119 @@ export class SwaggerIntegration {
 					}));
 				}
 
-				// Add request body for POST/PUT/PATCH
-				if (['post', 'put', 'patch'].includes(method) && routeOptions.validations) {
-					const bodyValidation = routeOptions.validations?.find((v) => v.body);
-					if (bodyValidation) {
+				// Check if examples are provided
+				if (routeOptions.examples && routeOptions.examples.length > 0) {
+					const example = routeOptions.examples[0];
+
+					// Add request body from example
+					if (example.request?.body) {
 						operation.requestBody = {
 							required: true,
 							content: {
 								'application/json': {
-									schema: this.generateSchemaFromValidation(bodyValidation.body),
+									schema: this.generateSchemaFromValidation(example.request.body),
 								},
 							},
 						};
 					}
+
+					// Add query parameters from example
+					if (example.request?.query) {
+						const querySchema = this.generateSchemaFromValidation(example.request.query);
+						if (!operation.parameters) operation.parameters = [];
+						operation.parameters.push({
+							name: 'query',
+							in: 'query',
+							required: false,
+							schema: querySchema,
+						});
+					}
+
+					// Add path parameters from example
+					if (example.request?.params) {
+						const paramsSchema = this.generateSchemaFromValidation(example.request.params);
+						if (pathParams.length > 0) {
+							operation.parameters = pathParams.map((param) => ({
+								name: param,
+								in: 'path',
+								required: true,
+								schema: paramsSchema,
+							}));
+						}
+					}
+
+					// Add header parameters from example
+					if (example.request?.headers) {
+						const headersSchema = this.generateSchemaFromValidation(
+							example.request.headers,
+						);
+						if (!operation.parameters) operation.parameters = [];
+						operation.parameters.push({
+							name: 'headers',
+							in: 'header',
+							required: false,
+							schema: headersSchema,
+						});
+					}
+				} else {
+					// Fallback to validations if no examples provided
+					if (['post', 'put', 'patch'].includes(method) && routeOptions.validations) {
+						const bodyValidation = routeOptions.validations?.find((v) => v.body);
+						if (bodyValidation) {
+							operation.requestBody = {
+								required: true,
+								content: {
+									'application/json': {
+										schema: this.generateSchemaFromValidation(bodyValidation.body),
+									},
+								},
+							};
+						}
+					}
 				}
 
-				// Add security if authenticated
-				if (routeOptions.authenticated) {
-					operation.security = [{ bearerAuth: [] }];
-				}
+				// Add responses from examples
+				if (routeOptions.examples && routeOptions.examples.length > 0) {
+					const example = routeOptions.examples[0];
+					operation.responses = {};
 
-				// Add error responses
-				if (routeOptions.authenticated) {
-					operation.responses['401'] = {
-						description: 'Unauthorized',
+					const responses = example.response as Record<string, any>;
+					Object.keys(responses).forEach((statusCode) => {
+						const responseData = responses[statusCode];
+						operation.responses[statusCode] = {
+							description: responseData.description,
+							content: {
+								[responseData.contentType || 'application/json']: {
+									schema: { type: 'object' },
+									example: responseData.example,
+								},
+							},
+						};
+					});
+				} else {
+					// Fallback to default responses if no examples
+					// Add security if authenticated
+					if (routeOptions.authenticated) {
+						operation.security = [{ bearerAuth: [] }];
+					}
+
+					// Add error responses
+					if (routeOptions.authenticated) {
+						operation.responses['401'] = {
+							description: 'Unauthorized',
+						};
+					}
+
+					if (routeOptions.permissions && routeOptions.permissions.length > 0) {
+						operation.responses['403'] = {
+							description: 'Forbidden',
+						};
+					}
+
+					operation.responses['400'] = {
+						description: 'Bad Request',
 					};
 				}
-
-				if (routeOptions.permissions && routeOptions.permissions.length > 0) {
-					operation.responses['403'] = {
-						description: 'Forbidden',
-					};
-				}
-
-				operation.responses['400'] = {
-					description: 'Bad Request',
-				};
 
 				paths[fullPath][method] = operation;
 			});
@@ -247,7 +315,7 @@ export class SwaggerIntegration {
 					tryItOutEnabled: true,
 					persistAuthorization: true,
 				},
-			})
+			}),
 		);
 
 		// JSON endpoint for OpenAPI spec
