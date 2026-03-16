@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { plainToInstance, TransformOptions } from 'class-transformer';
 import { validate, ValidatorOptions } from 'class-validator';
-import HttpException from '../expections/http.expection';
+import HttpException from '../../../expections/http.expection';
 export type IValidation = {
 	body?: any;
 	params?: any;
