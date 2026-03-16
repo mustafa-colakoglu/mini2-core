@@ -122,6 +122,8 @@ export interface RouteOptions {
 	extraData?: IExtraData;
 	name?: string;
 	examples?: IRequestResponseExample[];
+	preRequestScript?: string;
+	testScript?: string;
 }
 
 export interface RouteDefinition extends RouteOptions {

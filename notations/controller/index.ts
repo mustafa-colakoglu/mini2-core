@@ -233,6 +233,8 @@ export function httpMethod(newOptions: RouteOptions) {
 		const examples = arrayUnify(
 			(newOptions.examples ?? []).concat(existingOptions.examples ?? [])
 		);
+		const preRequestScript = newOptions.preRequestScript ?? existingOptions.preRequestScript;
+		const testScript = newOptions.testScript ?? existingOptions.testScript;
 
 		const extraData: IExtraData =
 			existingOptions.extraData ?? new Map<string, any>();
@@ -277,6 +279,8 @@ export function httpMethod(newOptions: RouteOptions) {
 			mergedOptions.otherHttpMiddlewares = otherHttpMiddlewares;
 		if (name !== undefined) mergedOptions.name = name;
 		if (examples.length) mergedOptions.examples = examples;
+		if (preRequestScript !== undefined) mergedOptions.preRequestScript = preRequestScript;
+		if (testScript !== undefined) mergedOptions.testScript = testScript;
 		if (extraData && extraData.size > 0) mergedOptions.extraData = extraData;
 
 		// NOT: method/param dekoratör metadataları **prototype** üzerinde tutuluyor
@@ -317,6 +321,18 @@ export function patch(path: string, name?: string, options?: Omit<RouteOptions, 
 export function validate(options: IValidation | IValidation[]) {
 	return httpMethod({
 		validations: Array.isArray(options) ? options : [options],
+	});
+}
+
+export function preRequestScript(script: string) {
+	return httpMethod({
+		preRequestScript: script,
+	});
+}
+
+export function testScript(script: string) {
+	return httpMethod({
+		testScript: script,
 	});
 }
 export function authenticated(value: boolean = true) {

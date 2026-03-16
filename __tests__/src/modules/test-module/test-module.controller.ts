@@ -23,6 +23,8 @@ import {
 	IController,
 	ResponseBuilder,
 	UnauthorizedException,
+	preRequestScript,
+	testScript,
 } from '../../../../index';
 
 import {
@@ -129,6 +131,42 @@ export class TestController extends Controller implements IController {
 			},
 		],
 	})
+	@preRequestScript(`
+// Set timestamp for tracking
+pm.environment.set("requestTimestamp", new Date().toISOString());
+
+// Generate unique ID
+pm.environment.set("uniqueId", pm.variables.replaceIn('{{$randomUUID}}'));
+
+console.log("Pre-request: Creating item at", pm.environment.get("requestTimestamp"));
+	`)
+	@testScript(`
+// Test response status
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+// Test response structure
+pm.test("Response has correct structure", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('ok');
+    pm.expect(jsonData).to.have.property('route');
+    pm.expect(jsonData.ok).to.be.true;
+});
+
+// Test response time
+pm.test("Response time is less than 500ms", function () {
+    pm.expect(pm.response.responseTime).to.be.below(500);
+});
+
+// Save response data to environment
+var jsonData = pm.response.json();
+if (jsonData.body && jsonData.body.title) {
+    pm.environment.set("createdItemTitle", jsonData.body.title);
+}
+
+console.log("Post-request: Item created successfully");
+	`)
 	@validate({ body: CreateDto })
 	@middleware(echoHeader)
 	public create(@body() bodyObj: CreateDto, @res() res: Response): void {
@@ -201,6 +239,57 @@ export class TestController extends Controller implements IController {
 			},
 		],
 	})
+	@preRequestScript(`
+// Set authorization header if token exists
+const token = pm.environment.get("authToken");
+if (token) {
+    pm.request.headers.add({
+        key: "Authorization",
+        value: "Bearer " + token
+    });
+}
+
+// Validate request body before sending
+const requestBody = JSON.parse(pm.request.body.raw);
+pm.expect(requestBody).to.have.property('title');
+
+console.log("Pre-request: Updating item with ID", pm.request.url.getPath().split('/').pop());
+	`)
+	@testScript(`
+// Test response status
+pm.test("Status code is 200 or error code", function () {
+    pm.expect([200, 400, 401, 404]).to.include(pm.response.code);
+});
+
+// Handle success response
+if (pm.response.code === 200) {
+    pm.test("Update successful", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData.ok).to.be.true;
+        pm.expect(jsonData.body).to.have.property('title');
+    });
+    
+    // Save updated item data
+    var jsonData = pm.response.json();
+    pm.environment.set("lastUpdatedItem", JSON.stringify(jsonData.body));
+}
+
+// Handle error responses
+if (pm.response.code === 404) {
+    pm.test("Item not found error is properly formatted", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData).to.have.property('error');
+        pm.expect(jsonData.error).to.equal('Not Found');
+    });
+}
+
+// Verify response time
+pm.test("Response time is acceptable", function () {
+    pm.expect(pm.response.responseTime).to.be.below(1000);
+});
+
+console.log("Post-request: Update operation completed with status", pm.response.code);
+	`)
 	@validate([{ params: IdParams }, { body: UpdateDto }])
 	public update(
 		@params() paramsObj: IdParams,

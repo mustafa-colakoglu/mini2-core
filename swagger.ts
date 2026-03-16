@@ -98,6 +98,25 @@ export class SwaggerIntegration {
 					},
 				};
 
+				// Add Postman scripts as vendor extensions
+				if (routeOptions.preRequestScript) {
+					operation['x-postman-prerequest'] = {
+						script: {
+							type: 'text/javascript',
+							exec: routeOptions.preRequestScript.split('\n'),
+						},
+					};
+				}
+				
+				if (routeOptions.testScript) {
+					operation['x-postman-test'] = {
+						script: {
+							type: 'text/javascript',
+							exec: routeOptions.testScript.split('\n'),
+						},
+					};
+				}
+
 				// Add parameters from path
 				const pathParams = this.extractPathParameters(routeOptions.path);
 				if (pathParams.length > 0) {

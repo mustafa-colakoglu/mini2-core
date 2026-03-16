@@ -23,6 +23,8 @@ import {
 	IController,
 	ResponseBuilder,
 	UnauthorizedException,
+	preRequestScript,
+	testScript,
 } from '../../../../index';
 
 import {
@@ -129,6 +131,26 @@ export class TestController2 extends Controller implements IController {
 			},
 		],
 	})
+	@preRequestScript(`
+// Module 2 specific setup
+pm.environment.set("module", "test-module-2");
+pm.environment.set("requestTimestamp", new Date().toISOString());
+
+console.log("Pre-request: Creating item in Module 2");
+	`)
+	@testScript(`
+// Module 2 specific tests
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Response is from Module 2", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.route).to.include('test2');
+});
+
+console.log("Post-request: Module 2 item created");
+	`)
 	@validate({ body: CreateDto })
 	@middleware(echoHeader)
 	public create(@body() bodyObj: CreateDto, @res() res: Response): void {
