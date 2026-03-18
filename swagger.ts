@@ -52,6 +52,8 @@ export class SwaggerIntegration {
 				return;
 			}
 
+			const controllerTag = this.extractControllerTag(controllerPath);
+
 			const allProperties = Object.getOwnPropertyNames(
 				Object.getPrototypeOf(controller),
 			);
@@ -83,7 +85,7 @@ export class SwaggerIntegration {
 				const operation: any = {
 					summary: this.generateSummary(method, fullPath),
 					description: this.generateDescription(method, fullPath),
-					tags: [this.extractControllerTag(controllerPath)],
+					tags: [controllerTag],
 					responses: {
 						'200': {
 							description: 'Success',
@@ -98,23 +100,47 @@ export class SwaggerIntegration {
 					},
 				};
 
-				// Add Postman scripts as vendor extensions
+				// Add Postman scripts as vendor extensions (for tools that read OpenAPI)
+				const postmanEvents: any[] = [];
+
 				if (routeOptions.preRequestScript) {
+					const preRequestScript = {
+						type: 'text/javascript',
+						exec: routeOptions.preRequestScript.split('\n'),
+					};
+
 					operation['x-postman-prerequest'] = {
-						script: {
-							type: 'text/javascript',
-							exec: routeOptions.preRequestScript.split('\n'),
-						},
+						script: preRequestScript,
 					};
+
+					postmanEvents.push({
+						listen: 'prerequest',
+						script: {
+							...preRequestScript,
+						},
+					});
 				}
-				
+
 				if (routeOptions.testScript) {
-					operation['x-postman-test'] = {
-						script: {
-							type: 'text/javascript',
-							exec: routeOptions.testScript.split('\n'),
-						},
+					const testScript = {
+						type: 'text/javascript',
+						exec: routeOptions.testScript.split('\n'),
 					};
+
+					operation['x-postman-test'] = {
+						script: testScript,
+					};
+
+					postmanEvents.push({
+						listen: 'test',
+						script: {
+							...testScript,
+						},
+					});
+				}
+
+				if (postmanEvents.length > 0) {
+					operation['x-postman-events'] = postmanEvents;
 				}
 
 				// Add parameters from path
@@ -271,6 +297,7 @@ export class SwaggerIntegration {
 				paths[fullPath][method] = operation;
 			});
 		});
+
 		this.swaggerSpec = {
 			openapi: '3.0.0',
 			info: {
