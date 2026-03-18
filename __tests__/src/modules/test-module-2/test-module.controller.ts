@@ -23,6 +23,8 @@ import {
 	IController,
 	ResponseBuilder,
 	UnauthorizedException,
+	preRequestScript,
+	testScript,
 } from '../../../../index';
 
 import {
@@ -96,7 +98,59 @@ export class TestController2 extends Controller implements IController {
 		res.json({ ok: true, route: 'GET /test2/query', query: queryObj });
 	}
 
-	@post('/create', 'Create2')
+	@post('/create', 'Create2', {
+		examples: [
+			{
+				request: {
+					body: {
+						title: 'Module 2 Item',
+						description: 'Test from Module 2',
+						order: 2,
+					},
+				},
+				response: {
+					201: {
+						description: 'Item created successfully in module 2',
+						data: {
+							ok: true,
+							route: 'POST /test2/create',
+							body: { title: 'Module 2 Item', description: 'Test from Module 2', order: 2 },
+							echo: null,
+						},
+					},
+					400: {
+						description: 'Validation error',
+						data: {
+							error: 'Validation failed',
+							validationErrors: [
+								{ field: 'title', errors: ['title should not be empty'] },
+							],
+						},
+					},
+				},
+			},
+		],
+	})
+	@preRequestScript(`
+// Module 2 specific setup
+pm.environment.set("module", "test-module-2");
+pm.environment.set("requestTimestamp", new Date().toISOString());
+
+console.log("Pre-request: Creating item in Module 2");
+	`)
+	@testScript(`
+// Module 2 specific tests
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Response is from Module 2", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.route).to.include('test2');
+});
+
+console.log("Post-request: Module 2 item created");
+	`)
 	@validate({ body: CreateDto })
 	@middleware(echoHeader)
 	public create(@body() bodyObj: CreateDto, @res() res: Response): void {
@@ -109,7 +163,66 @@ export class TestController2 extends Controller implements IController {
 		});
 	}
 
-	@put('/:id', 'Update2')
+	@put('/:id', 'Update2', {
+		examples: [
+			{
+				request: {
+					body: {
+						title: 'Updated in Module 2',
+						description: 'Module 2 Update',
+						order: 10,
+					},
+					params: {
+						id: '456',
+					},
+					query: {
+						page: 2,
+						limit: 20,
+						q: 'module2',
+					},
+					headers: {
+						'x-echo': 'module2-header',
+						'x-mongo-id': '507f1f77bcf86cd799439011',
+					},
+				},
+				response: {
+					200: {
+						description: 'Item updated successfully in module 2',
+						data: {
+							ok: true,
+							route: 'PUT /test2/456',
+							params: { id: '456' },
+							body: { title: 'Updated in Module 2', description: 'Module 2 Update', order: 10 },
+							query: { page: 2, limit: 20, q: 'module2' },
+						},
+					},
+					400: {
+						description: 'Validation error',
+						data: {
+							error: 'Validation failed',
+							validationErrors: [
+								{ field: 'title', errors: ['title should not be empty'] },
+							],
+						},
+					},
+					401: {
+						description: 'Unauthorized',
+						data: {
+							error: 'Unauthorized',
+							message: 'Missing or invalid authentication token',
+						},
+					},
+					404: {
+						description: 'Not found',
+						data: {
+							error: 'Not Found',
+							message: 'Item with id 456 not found in module 2',
+						},
+					},
+				},
+			},
+		],
+	})
 	@validate([{ params: IdParams }, { body: UpdateDto }])
 	public update(
 		@params() paramsObj: IdParams,

@@ -1,24 +1,21 @@
 import 'reflect-metadata';
 import swaggerUi from 'swagger-ui-express';
-import { Express } from 'express';
+import { Express, Request, Response, NextFunction } from 'express';
 import { keyOfPath, keyOfRouteOptions, RouteOptions } from './notations';
 import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
+import { SwaggerOptions } from 'swagger-ui-express';
+import { ISwaggerBasicAuth } from './interfaces/config.interface';
+import { inferSchema } from './utils/infer-schema';
 
-export interface SwaggerOptions {
-	title?: string;
-	description?: string;
-	version?: string;
-	servers?: { url: string; description?: string }[];
-	docsPath?: string;
-	jsonPath?: string;
-	components?: any;
+export interface ISwaggerIntegrationOptions extends SwaggerOptions {
+	basicAuth?: ISwaggerBasicAuth;
 }
 
 export class SwaggerIntegration {
 	private swaggerSpec: any;
-	private options: SwaggerOptions;
+	private options: ISwaggerIntegrationOptions;
 
-	constructor(options: SwaggerOptions = {}) {
+	constructor(options: ISwaggerIntegrationOptions = {}) {
 		this.options = {
 			title: 'Mini Framework API',
 			description: 'API documentation for Mini Framework',
@@ -48,22 +45,24 @@ export class SwaggerIntegration {
 		controllers.forEach((controller) => {
 			const controllerPath = Reflect.getMetadata(
 				keyOfPath,
-				controller.constructor
+				controller.constructor,
 			);
 			if (!controllerPath) {
 				console.log(`❌ No path metadata found for ${controller.constructor.name}`);
 				return;
 			}
 
+			const controllerTag = this.extractControllerTag(controllerPath);
+
 			const allProperties = Object.getOwnPropertyNames(
-				Object.getPrototypeOf(controller)
+				Object.getPrototypeOf(controller),
 			);
 
 			allProperties.forEach((property) => {
 				const routeOptions: RouteOptions = Reflect.getMetadata(
 					keyOfRouteOptions,
 					controller,
-					property
+					property,
 				);
 
 				if (!routeOptions || !routeOptions.path || !routeOptions.method) {
@@ -86,7 +85,7 @@ export class SwaggerIntegration {
 				const operation: any = {
 					summary: this.generateSummary(method, fullPath),
 					description: this.generateDescription(method, fullPath),
-					tags: [this.extractControllerTag(controllerPath)],
+					tags: [controllerTag],
 					responses: {
 						'200': {
 							description: 'Success',
@@ -101,6 +100,49 @@ export class SwaggerIntegration {
 					},
 				};
 
+				// Add Postman scripts as vendor extensions (for tools that read OpenAPI)
+				const postmanEvents: any[] = [];
+
+				if (routeOptions.preRequestScript) {
+					const preRequestScript = {
+						type: 'text/javascript',
+						exec: routeOptions.preRequestScript.split('\n'),
+					};
+
+					operation['x-postman-prerequest'] = {
+						script: preRequestScript,
+					};
+
+					postmanEvents.push({
+						listen: 'prerequest',
+						script: {
+							...preRequestScript,
+						},
+					});
+				}
+
+				if (routeOptions.testScript) {
+					const testScript = {
+						type: 'text/javascript',
+						exec: routeOptions.testScript.split('\n'),
+					};
+
+					operation['x-postman-test'] = {
+						script: testScript,
+					};
+
+					postmanEvents.push({
+						listen: 'test',
+						script: {
+							...testScript,
+						},
+					});
+				}
+
+				if (postmanEvents.length > 0) {
+					operation['x-postman-events'] = postmanEvents;
+				}
+
 				// Add parameters from path
 				const pathParams = this.extractPathParameters(routeOptions.path);
 				if (pathParams.length > 0) {
@@ -114,46 +156,148 @@ export class SwaggerIntegration {
 					}));
 				}
 
-				// Add request body for POST/PUT/PATCH
-				if (['post', 'put', 'patch'].includes(method) && routeOptions.validations) {
-					const bodyValidation = routeOptions.validations?.find((v) => v.body);
-					if (bodyValidation) {
+				// Check if examples are provided
+				if (routeOptions.examples && routeOptions.examples.length > 0) {
+					const example = routeOptions.examples[0];
+
+					// Add request body from example
+					if (example.request?.body) {
+						const bodySchema = inferSchema(example.request.body);
 						operation.requestBody = {
 							required: true,
 							content: {
 								'application/json': {
-									schema: this.generateSchemaFromValidation(bodyValidation.body),
+									schema: bodySchema,
+									example: example.request.body,
 								},
 							},
 						};
 					}
+
+					// Initialize parameters array
+					if (!operation.parameters) operation.parameters = [];
+
+					// Add path parameters from example (if provided in example)
+					if (example.request?.params && pathParams.length > 0) {
+						const paramsSchema = inferSchema(example.request.params);
+						pathParams.forEach((param) => {
+							operation.parameters!.push({
+								name: param,
+								in: 'path',
+								required: true,
+								schema: paramsSchema.properties?.[param] || { type: 'string' },
+								example: (example.request!.params as any)[param],
+							});
+						});
+					}
+
+					// Add query parameters from example
+					if (example.request?.query) {
+						const querySchema = inferSchema(example.request.query);
+						
+						// Add each query parameter separately
+						if (querySchema.properties) {
+							Object.keys(querySchema.properties).forEach((paramName) => {
+								operation.parameters!.push({
+									name: paramName,
+									in: 'query',
+									required: querySchema.required?.includes(paramName) ?? false,
+									schema: querySchema.properties[paramName],
+									example: (example.request!.query as any)[paramName],
+								});
+							});
+						}
+					}
+
+					// Add header parameters from example
+					if (example.request?.headers) {
+						const headersSchema = inferSchema(example.request.headers);
+						
+						// Add each header separately
+						if (headersSchema.properties) {
+							Object.keys(headersSchema.properties).forEach((headerName) => {
+								operation.parameters!.push({
+									name: headerName,
+									in: 'header',
+									required: headersSchema.required?.includes(headerName) ?? false,
+									schema: headersSchema.properties[headerName],
+									example: (example.request!.headers as any)[headerName],
+								});
+							});
+						}
+					}
+				} else {
+					// Fallback to validations if no examples provided
+					if (['post', 'put', 'patch'].includes(method) && routeOptions.validations) {
+						const bodyValidation = routeOptions.validations?.find((v) => v.body);
+						if (bodyValidation) {
+							operation.requestBody = {
+								required: true,
+								content: {
+									'application/json': {
+										schema: this.generateSchemaFromValidation(bodyValidation.body),
+									},
+								},
+							};
+						}
+					}
 				}
 
-				// Add security if authenticated
-				if (routeOptions.authenticated) {
-					operation.security = [{ bearerAuth: [] }];
-				}
+				// Add responses from examples
+				if (routeOptions.examples && routeOptions.examples.length > 0) {
+					const example = routeOptions.examples[0];
+					operation.responses = {};
 
-				// Add error responses
-				if (routeOptions.authenticated) {
-					operation.responses['401'] = {
-						description: 'Unauthorized',
+					const responses = example.response as Record<string, any>;
+					Object.keys(responses).forEach((statusCode) => {
+						const responseData = responses[statusCode];
+						const responseSchema = inferSchema(responseData.data);
+						
+						operation.responses[statusCode] = {
+							description: responseData.description,
+							content: {
+								[responseData.contentType || 'application/json']: {
+									schema: responseSchema,
+									example: responseData.data,
+									examples: {
+										default: {
+											summary: responseData.description,
+											value: responseData.data,
+										},
+									},
+								},
+							},
+						};
+					});
+				} else {
+					// Fallback to default responses if no examples
+					// Add security if authenticated
+					if (routeOptions.authenticated) {
+						operation.security = [{ bearerAuth: [] }];
+					}
+
+					// Add error responses
+					if (routeOptions.authenticated) {
+						operation.responses['401'] = {
+							description: 'Unauthorized',
+						};
+					}
+
+					if (routeOptions.permissions && routeOptions.permissions.length > 0) {
+						operation.responses['403'] = {
+							description: 'Forbidden',
+						};
+					}
+
+					operation.responses['400'] = {
+						description: 'Bad Request',
 					};
 				}
-
-				if (routeOptions.permissions && routeOptions.permissions.length > 0) {
-					operation.responses['403'] = {
-						description: 'Forbidden',
-					};
-				}
-
-				operation.responses['400'] = {
-					description: 'Bad Request',
-				};
 
 				paths[fullPath][method] = operation;
 			});
 		});
+
 		this.swaggerSpec = {
 			openapi: '3.0.0',
 			info: {
@@ -231,10 +375,38 @@ export class SwaggerIntegration {
 		return { $ref: `#/components/schemas/${className}` };
 	}
 
+	private basicAuthMiddleware(req: Request, res: Response, next: NextFunction) {
+		const auth = req.headers.authorization;
+
+		if (!auth || !auth.startsWith('Basic ')) {
+			res.setHeader('WWW-Authenticate', 'Basic realm="Swagger Documentation"');
+			res.status(401).send('Authentication required');
+			return;
+		}
+
+		const credentials = Buffer.from(auth.substring(6), 'base64').toString();
+		const [username, password] = credentials.split(':');
+
+		if (
+			username === this.options.basicAuth?.username &&
+			password === this.options.basicAuth?.password
+		) {
+			next();
+		} else {
+			res.setHeader('WWW-Authenticate', 'Basic realm="Swagger Documentation"');
+			res.status(401).send('Invalid credentials');
+		}
+	}
+
 	public setupSwagger(app: Express) {
-		// Swagger UI middleware
+		const authMiddleware = this.options.basicAuth
+			? this.basicAuthMiddleware.bind(this)
+			: (_req: Request, _res: Response, next: NextFunction) => next();
+
+		// Swagger UI middleware with optional basic auth
 		app.use(
 			this.options.docsPath!,
+			authMiddleware,
 			swaggerUi.serve,
 			swaggerUi.setup(this.swaggerSpec, {
 				explorer: true,
@@ -247,17 +419,20 @@ export class SwaggerIntegration {
 					tryItOutEnabled: true,
 					persistAuthorization: true,
 				},
-			})
+			}),
 		);
 
-		// JSON endpoint for OpenAPI spec
-		app.get(this.options.jsonPath!, (_req, res) => {
+		// JSON endpoint for OpenAPI spec with optional basic auth
+		app.get(this.options.jsonPath!, authMiddleware, (_req, res) => {
 			res.setHeader('Content-Type', 'application/json');
 			res.send(this.swaggerSpec);
 		});
 
 		console.log(`📚 Swagger UI available at: ${this.options.docsPath}`);
 		console.log(`📄 OpenAPI JSON spec available at: ${this.options.jsonPath}`);
+		if (this.options.basicAuth) {
+			console.log(`🔒 Swagger endpoints protected with Basic Authentication`);
+		}
 	}
 
 	public getSwaggerSpec() {

@@ -27,6 +27,7 @@ export * from './notations/controller/middlewares/validation.middleware';
 // Utils
 export * from './utils/array-unify';
 export * from './utils/math';
+export * from './utils/infer-schema';
 
 // Exceptions
 export * from './expections/http.expection';
