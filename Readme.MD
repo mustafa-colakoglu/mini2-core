@@ -921,29 +921,52 @@ const swaggerOptions = {
 
 You can provide concrete request/response examples per route. If `examples` are present, Swagger generation prefers them to:
 
-- Build request body schemas and attach `example`
+- Build request body schemas and attach `example` + `examples`
 - Generate path/query/header parameters (with examples when available)
-- Generate **all response status codes** with `example` and `examples.default` for compatibility
+- Generate response examples by status code
+
+`examples` is an array and each entry represents one scenario.  
+For each scenario, `response` must include exactly one status code key:
+
+- ✅ `response: { 200: { ... } }`
+- ✅ `response: { 400: { ... } }`
+- ❌ `response: { 200: { ... }, 400: { ... } }`
 
 Example (simplified):
 
 ```typescript
 @post('/create', 'Create', {
-  examples: [{
-    request: {
-      body: { title: 'Test Item', order: 1 },
-      params: { id: '123' },
-      query: { page: 1 },
-      headers: { 'x-echo': 'hello' },
+  examples: [
+    {
+      request: {
+        body: { title: 'Test Item', order: 1 },
+        query: { page: 1 },
+      },
+      response: {
+        201: { ok: true, id: '123' },
+      },
     },
-    response: {
-      201: { description: 'Created', data: { ok: true } },
-      400: { description: 'Validation error', data: { error: 'Validation failed' } },
+    {
+      request: {
+        body: { order: 1 },
+      },
+      response: {
+        400: { error: 'Validation failed' },
+      },
     },
-  }],
+  ],
 })
 create() { /* ... */ }
 ```
+
+#### **📮 Postman Collection Behavior with Examples**
+
+When route `examples` are provided:
+
+- One Postman request item is generated per route
+- Request body examples are attached to `request.body.options.raw.examples`
+- Route response examples are included in the same request item's `response[]` list
+- Route-level scripts (`@preRequestScript` / `@testScript`) are attached once at item level
 
 #### **🧰 Postman Scripts via OpenAPI Vendor Extensions**
 
@@ -1040,7 +1063,8 @@ This repo includes a runnable demo server and an example Postman collection to q
 
 - `local-test-server/index.ts`: starts the server with autoload enabled
 - `local-test-server/local-test-controller.ts`: demonstrates `examples`, `@preRequestScript`, and `@testScript`
-- `local-test-server/Local Test Server.postman_collection.json`: ready-to-import collection
+- `GET /postman.json`: generated Postman collection endpoint
+- `local-test-server/Local Test Server.postman_collection.json`: sample exported collection snapshot
 
 ### 📝 TypeScript Support
 
