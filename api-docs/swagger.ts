@@ -83,8 +83,7 @@ export class SwaggerIntegration {
 				// Generate OpenAPI operation
 				const operation: any = {
 					summary:
-						routeOptions.name?.trim() ||
-						this.generateSummary(method, fullPath),
+						routeOptions.name?.trim() || this.generateSummary(method, fullPath),
 					description: this.generateDescription(method, fullPath),
 					tags: [controllerTag],
 					responses: {
@@ -188,8 +187,7 @@ export class SwaggerIntegration {
 										parameter = {
 											name: paramName,
 											in: 'query',
-											required:
-												querySchema.required?.includes(paramName) ?? false,
+											required: querySchema.required?.includes(paramName) ?? false,
 											schema: querySchema.properties[paramName],
 											example: (example.request!.query as any)[paramName],
 											examples: {},
@@ -214,8 +212,7 @@ export class SwaggerIntegration {
 										parameter = {
 											name: headerName,
 											in: 'header',
-											required:
-												headersSchema.required?.includes(headerName) ?? false,
+											required: headersSchema.required?.includes(headerName) ?? false,
 											schema: headersSchema.properties[headerName],
 											example: (example.request!.headers as any)[headerName],
 											examples: {},
@@ -257,16 +254,30 @@ export class SwaggerIntegration {
 					routeOptions.examples.forEach((example, exampleIndex) => {
 						Object.entries(example.response as Record<string, unknown>).forEach(
 							([statusCode, responseData]) => {
-								const contentType = 'application/json';
-								const responseSchema = inferSchema(responseData);
+								const rawResponse = responseData as Record<string, any>;
+								const hasLegacyShape =
+									rawResponse &&
+									typeof rawResponse === 'object' &&
+									'description' in rawResponse &&
+									'data' in rawResponse;
+								const contentType = hasLegacyShape
+									? rawResponse.contentType || 'application/json'
+									: 'application/json';
+								const responseDescription = hasLegacyShape
+									? rawResponse.description
+									: `Status ${statusCode}`;
+								const responseValue = hasLegacyShape
+									? rawResponse.data
+									: responseData;
+								const responseSchema = inferSchema(responseValue);
 
 								if (!operation.responses[statusCode]) {
 									operation.responses[statusCode] = {
-										description: `Status ${statusCode}`,
+										description: responseDescription,
 										content: {
 											[contentType]: {
 												schema: responseSchema,
-												example: responseData,
+												example: responseValue,
 												examples: {},
 											},
 										},
@@ -277,8 +288,19 @@ export class SwaggerIntegration {
 									`example_${exampleIndex + 1}`
 								] = {
 									summary: `Example ${exampleIndex + 1}`,
-									value: responseData,
+									value: responseValue,
 								};
+
+								if (
+									!operation.responses[statusCode].content[contentType].examples
+										.default
+								) {
+									operation.responses[statusCode].content[contentType].examples.default =
+										{
+											summary: responseDescription,
+											value: responseValue,
+										};
+								}
 							},
 						);
 					});
@@ -305,6 +327,22 @@ export class SwaggerIntegration {
 					operation.responses['400'] = {
 						description: 'Bad Request',
 					};
+				}
+
+				// Postman-compatible script vendor extensions
+				const postmanEvents: any[] = [];
+				if (routeOptions.preRequestScript) {
+					const script = this.toPostmanScript(routeOptions.preRequestScript);
+					operation['x-postman-prerequest'] = { script };
+					postmanEvents.push({ listen: 'prerequest', script });
+				}
+				if (routeOptions.testScript) {
+					const script = this.toPostmanScript(routeOptions.testScript);
+					operation['x-postman-test'] = { script };
+					postmanEvents.push({ listen: 'test', script });
+				}
+				if (postmanEvents.length > 0) {
+					operation['x-postman-events'] = postmanEvents;
 				}
 
 				paths[fullPath][method] = operation;
@@ -388,6 +426,17 @@ export class SwaggerIntegration {
 	private generateSchemaFromValidation(validationClass: any): any {
 		const className = validationClass.name;
 		return { $ref: `#/components/schemas/${className}` };
+	}
+
+	private toPostmanScript(scriptContent: string) {
+		const exec = scriptContent
+			.split('\n')
+			.map((line) => line.trimEnd())
+			.filter((line) => line.trim().length > 0);
+		return {
+			type: 'text/javascript',
+			exec,
+		};
 	}
 
 	private basicAuthMiddleware(req: Request, res: Response, next: NextFunction) {

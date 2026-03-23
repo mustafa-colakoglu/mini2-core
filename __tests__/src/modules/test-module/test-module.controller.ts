@@ -118,6 +118,17 @@ export class TestController extends Controller implements IController {
 							echo: null,
 						},
 					},
+				},
+			},
+			{
+				request: {
+					body: {
+						title: '',
+						description: 'Test Description',
+						order: 1,
+					},
+				},
+				response: {
 					400: {
 						description: 'Validation error',
 						data: {
@@ -208,10 +219,37 @@ console.log("Post-request: Item created successfully");
 							ok: true,
 							route: 'PUT /test/123',
 							params: { id: '123' },
-							body: { title: 'Updated Title', description: 'Updated Description', order: 5 },
+							body: {
+								title: 'Updated Title',
+								description: 'Updated Description',
+								order: 5,
+							},
 							query: { page: 1, limit: 10, q: 'test' },
 						},
 					},
+				},
+			},
+			{
+				request: {
+					body: {
+						title: '',
+						description: 'Updated Description',
+						order: 5,
+					},
+					params: {
+						id: '123',
+					},
+					query: {
+						page: 1,
+						limit: 10,
+						q: 'test',
+					},
+					headers: {
+						'x-echo': 'my-header-value',
+						'x-mongo-id': '507f1f77bcf86cd799439011',
+					},
+				},
+				response: {
 					400: {
 						description: 'Validation error',
 						data: {
@@ -221,6 +259,29 @@ console.log("Post-request: Item created successfully");
 							],
 						},
 					},
+				},
+			},
+			{
+				request: {
+					body: {
+						title: 'Updated Title',
+						description: 'Updated Description',
+						order: 5,
+					},
+					params: {
+						id: '123',
+					},
+					query: {
+						page: 1,
+						limit: 10,
+						q: 'test',
+					},
+					headers: {
+						'x-echo': 'my-header-value',
+						'x-mongo-id': '507f1f77bcf86cd799439011',
+					},
+				},
+				response: {
 					401: {
 						description: 'Unauthorized',
 						data: {
@@ -228,6 +289,29 @@ console.log("Post-request: Item created successfully");
 							message: 'Missing or invalid authentication token',
 						},
 					},
+				},
+			},
+			{
+				request: {
+					body: {
+						title: 'Updated Title',
+						description: 'Updated Description',
+						order: 5,
+					},
+					params: {
+						id: '123',
+					},
+					query: {
+						page: 1,
+						limit: 10,
+						q: 'test',
+					},
+					headers: {
+						'x-echo': 'my-header-value',
+						'x-mongo-id': '507f1f77bcf86cd799439011',
+					},
+				},
+				response: {
 					404: {
 						description: 'Not found',
 						data: {
@@ -294,7 +378,7 @@ console.log("Post-request: Update operation completed with status", pm.response.
 	public update(
 		@params() paramsObj: IdParams,
 		@body() bodyObj: UpdateDto,
-		@res() res: Response
+		@res() res: Response,
 	): void {
 		res.setHeader('x-handler', 'update');
 		res.json({
@@ -310,7 +394,7 @@ console.log("Post-request: Update operation completed with status", pm.response.
 	public patchOne(
 		@params() paramsObj: IdParams,
 		@body() bodyObj: UpdateDto,
-		@res() res: Response
+		@res() res: Response,
 	): void {
 		res.setHeader('x-handler', 'patch');
 		res.json({
@@ -363,7 +447,7 @@ console.log("Post-request: Update operation completed with status", pm.response.
 	public nextError(
 		@req() _req: Request,
 		@res() _res: Response,
-		@next() next: NextFunction
+		@next() next: NextFunction,
 	): void {
 		next(new Error('Manual error from /test/next-error'));
 	}
@@ -398,9 +482,12 @@ console.log("Post-request: Update operation completed with status", pm.response.
 			echo: echoHeader ?? null,
 		});
 	}
-	@get("/validate-header-custom-error", "Validate header with custom http error")
-	@validate({ headers: TestHeaderValidationDto, customHttpError:new UnauthorizedException({message:"Not Authorized"}) })
-	public validateHeaderCustomError(@req() req:Request): ResponseBuilder<any> {
+	@get('/validate-header-custom-error', 'Validate header with custom http error')
+	@validate({
+		headers: TestHeaderValidationDto,
+		customHttpError: new UnauthorizedException({ message: 'Not Authorized' }),
+	})
+	public validateHeaderCustomError(@req() req: Request): ResponseBuilder<any> {
 		const headers = req.headers as any;
 		const echoHeader = headers['x-echo'] ?? null;
 		const mongoId = headers['x-mongo-id'] ?? null;

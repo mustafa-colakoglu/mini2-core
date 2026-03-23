@@ -114,10 +114,25 @@ export class TestController2 extends Controller implements IController {
 						data: {
 							ok: true,
 							route: 'POST /test2/create',
-							body: { title: 'Module 2 Item', description: 'Test from Module 2', order: 2 },
+							body: {
+								title: 'Module 2 Item',
+								description: 'Test from Module 2',
+								order: 2,
+							},
 							echo: null,
 						},
 					},
+				},
+			},
+			{
+				request: {
+					body: {
+						title: '',
+						description: 'Test from Module 2',
+						order: 2,
+					},
+				},
+				response: {
 					400: {
 						description: 'Validation error',
 						data: {
@@ -192,10 +207,37 @@ console.log("Post-request: Module 2 item created");
 							ok: true,
 							route: 'PUT /test2/456',
 							params: { id: '456' },
-							body: { title: 'Updated in Module 2', description: 'Module 2 Update', order: 10 },
+							body: {
+								title: 'Updated in Module 2',
+								description: 'Module 2 Update',
+								order: 10,
+							},
 							query: { page: 2, limit: 20, q: 'module2' },
 						},
 					},
+				},
+			},
+			{
+				request: {
+					body: {
+						title: '',
+						description: 'Module 2 Update',
+						order: 10,
+					},
+					params: {
+						id: '456',
+					},
+					query: {
+						page: 2,
+						limit: 20,
+						q: 'module2',
+					},
+					headers: {
+						'x-echo': 'module2-header',
+						'x-mongo-id': '507f1f77bcf86cd799439011',
+					},
+				},
+				response: {
 					400: {
 						description: 'Validation error',
 						data: {
@@ -205,6 +247,29 @@ console.log("Post-request: Module 2 item created");
 							],
 						},
 					},
+				},
+			},
+			{
+				request: {
+					body: {
+						title: 'Updated in Module 2',
+						description: 'Module 2 Update',
+						order: 10,
+					},
+					params: {
+						id: '456',
+					},
+					query: {
+						page: 2,
+						limit: 20,
+						q: 'module2',
+					},
+					headers: {
+						'x-echo': 'module2-header',
+						'x-mongo-id': '507f1f77bcf86cd799439011',
+					},
+				},
+				response: {
 					401: {
 						description: 'Unauthorized',
 						data: {
@@ -212,6 +277,29 @@ console.log("Post-request: Module 2 item created");
 							message: 'Missing or invalid authentication token',
 						},
 					},
+				},
+			},
+			{
+				request: {
+					body: {
+						title: 'Updated in Module 2',
+						description: 'Module 2 Update',
+						order: 10,
+					},
+					params: {
+						id: '456',
+					},
+					query: {
+						page: 2,
+						limit: 20,
+						q: 'module2',
+					},
+					headers: {
+						'x-echo': 'module2-header',
+						'x-mongo-id': '507f1f77bcf86cd799439011',
+					},
+				},
+				response: {
 					404: {
 						description: 'Not found',
 						data: {
@@ -227,7 +315,7 @@ console.log("Post-request: Module 2 item created");
 	public update(
 		@params() paramsObj: IdParams,
 		@body() bodyObj: UpdateDto,
-		@res() res: Response
+		@res() res: Response,
 	): void {
 		res.setHeader('x-handler', 'update');
 		res.json({
@@ -243,7 +331,7 @@ console.log("Post-request: Module 2 item created");
 	public patchOne(
 		@params() paramsObj: IdParams,
 		@body() bodyObj: UpdateDto,
-		@res() res: Response
+		@res() res: Response,
 	): void {
 		res.setHeader('x-handler', 'patch');
 		res.json({
@@ -296,7 +384,7 @@ console.log("Post-request: Module 2 item created");
 	public nextError(
 		@req() _req: Request,
 		@res() _res: Response,
-		@next() next: NextFunction
+		@next() next: NextFunction,
 	): void {
 		next(new Error('Manual error from /test2/next-error'));
 	}
@@ -331,9 +419,12 @@ console.log("Post-request: Module 2 item created");
 			echo: echoHeader ?? null,
 		});
 	}
-	@get("/validate-header-custom-error", "Validate header with custom http error")
-	@validate({ headers: TestHeaderValidationDto, customHttpError:new UnauthorizedException({message:"Not Authorized"}) })
-	public validateHeaderCustomError(@req() req:Request): ResponseBuilder<any> {
+	@get('/validate-header-custom-error', 'Validate header with custom http error')
+	@validate({
+		headers: TestHeaderValidationDto,
+		customHttpError: new UnauthorizedException({ message: 'Not Authorized' }),
+	})
+	public validateHeaderCustomError(@req() req: Request): ResponseBuilder<any> {
 		const headers = req.headers as any;
 		const echoHeader = headers['x-echo'] ?? null;
 		const mongoId = headers['x-mongo-id'] ?? null;

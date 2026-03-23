@@ -22,14 +22,14 @@ describe('Swagger Pre/Post Scripts', () => {
 							extensions: ['.js', '.cjs', '.mjs'],
 							workingDirectory: __dirname + '/dist',
 							patterns: ['**/*.(js|cjs|mjs)'],
-					  }
+						}
 					: {
 							workingDirectory: __dirname + '/src',
 							extensions: ['.ts', '.mts', '.cts'],
 							patterns: ['**/*.(ts|js)'],
-					  }),
+						}),
 				logging: false,
-			}
+			},
 		);
 		await appFromContainer.afterInit();
 		app = appFromContainer.getApp();
@@ -37,6 +37,10 @@ describe('Swagger Pre/Post Scripts', () => {
 
 	afterAll(async () => {
 		return new Promise((resolve) => {
+			if (!appFromContainer.server) {
+				resolve(true);
+				return;
+			}
 			appFromContainer.server.close(() => {
 				console.log('swagger scripts test server closed');
 				resolve(true);
@@ -49,16 +53,23 @@ describe('Swagger Pre/Post Scripts', () => {
 			const res = await request(app).get('/api-docs.json');
 			const spec = res.body;
 			const postCreatePath = spec.paths['/test/create']?.post;
-			
+
 			expect(postCreatePath).toBeDefined();
 			expect(postCreatePath['x-postman-prerequest']).toBeDefined();
 			expect(postCreatePath['x-postman-prerequest'].script).toBeDefined();
-			expect(postCreatePath['x-postman-prerequest'].script.type).toBe('text/javascript');
-			expect(postCreatePath['x-postman-prerequest'].script.exec).toBeInstanceOf(Array);
-			expect(postCreatePath['x-postman-prerequest'].script.exec.length).toBeGreaterThan(0);
-			
+			expect(postCreatePath['x-postman-prerequest'].script.type).toBe(
+				'text/javascript',
+			);
+			expect(postCreatePath['x-postman-prerequest'].script.exec).toBeInstanceOf(
+				Array,
+			);
+			expect(
+				postCreatePath['x-postman-prerequest'].script.exec.length,
+			).toBeGreaterThan(0);
+
 			// Check script content
-			const scriptContent = postCreatePath['x-postman-prerequest'].script.exec.join('\n');
+			const scriptContent =
+				postCreatePath['x-postman-prerequest'].script.exec.join('\n');
 			expect(scriptContent).toContain('pm.environment.set');
 			expect(scriptContent).toContain('requestTimestamp');
 		});
@@ -67,11 +78,12 @@ describe('Swagger Pre/Post Scripts', () => {
 			const res = await request(app).get('/api-docs.json');
 			const spec = res.body;
 			const putUpdatePath = spec.paths['/test/{id}']?.put;
-			
+
 			expect(putUpdatePath).toBeDefined();
 			expect(putUpdatePath['x-postman-prerequest']).toBeDefined();
-			
-			const scriptContent = putUpdatePath['x-postman-prerequest'].script.exec.join('\n');
+
+			const scriptContent =
+				putUpdatePath['x-postman-prerequest'].script.exec.join('\n');
 			expect(scriptContent).toContain('authToken');
 			expect(scriptContent).toContain('Authorization');
 		});
@@ -82,15 +94,16 @@ describe('Swagger Pre/Post Scripts', () => {
 			const res = await request(app).get('/api-docs.json');
 			const spec = res.body;
 			const postCreatePath = spec.paths['/test/create']?.post;
-			
+
 			expect(postCreatePath).toBeDefined();
 			expect(postCreatePath['x-postman-test']).toBeDefined();
 			expect(postCreatePath['x-postman-test'].script).toBeDefined();
 			expect(postCreatePath['x-postman-test'].script.type).toBe('text/javascript');
 			expect(postCreatePath['x-postman-test'].script.exec).toBeInstanceOf(Array);
-			
+
 			// Check script content
-			const scriptContent = postCreatePath['x-postman-test'].script.exec.join('\n');
+			const scriptContent =
+				postCreatePath['x-postman-test'].script.exec.join('\n');
 			expect(scriptContent).toContain('pm.test');
 			expect(scriptContent).toContain('Status code is 201');
 			expect(scriptContent).toContain('pm.response.to.have.status');
@@ -100,10 +113,10 @@ describe('Swagger Pre/Post Scripts', () => {
 			const res = await request(app).get('/api-docs.json');
 			const spec = res.body;
 			const putUpdatePath = spec.paths['/test/{id}']?.put;
-			
+
 			expect(putUpdatePath).toBeDefined();
 			expect(putUpdatePath['x-postman-test']).toBeDefined();
-			
+
 			const scriptContent = putUpdatePath['x-postman-test'].script.exec.join('\n');
 			expect(scriptContent).toContain('pm.test');
 			expect(scriptContent).toContain('lastUpdatedItem');
@@ -116,16 +129,18 @@ describe('Swagger Pre/Post Scripts', () => {
 			const res = await request(app).get('/api-docs.json');
 			const spec = res.body;
 			const module2CreatePath = spec.paths['/test2/create']?.post;
-			
+
 			expect(module2CreatePath).toBeDefined();
 			expect(module2CreatePath['x-postman-prerequest']).toBeDefined();
 			expect(module2CreatePath['x-postman-test']).toBeDefined();
-			
+
 			// Check module-specific content
-			const preScript = module2CreatePath['x-postman-prerequest'].script.exec.join('\n');
+			const preScript =
+				module2CreatePath['x-postman-prerequest'].script.exec.join('\n');
 			expect(preScript).toContain('Module 2');
-			
-			const testScript = module2CreatePath['x-postman-test'].script.exec.join('\n');
+
+			const testScript =
+				module2CreatePath['x-postman-test'].script.exec.join('\n');
 			expect(testScript).toContain('test2');
 		});
 	});
@@ -135,20 +150,24 @@ describe('Swagger Pre/Post Scripts', () => {
 			const res = await request(app).get('/api-docs.json');
 			const spec = res.body;
 			const postCreatePath = spec.paths['/test/create']?.post;
-			
+
 			// Validate structure for Postman compatibility
 			expect(postCreatePath['x-postman-prerequest'].script).toMatchObject({
 				type: 'text/javascript',
 				exec: expect.any(Array),
 			});
-			
+
 			expect(postCreatePath['x-postman-test'].script).toMatchObject({
 				type: 'text/javascript',
 				exec: expect.any(Array),
 			});
-			
+
 			// Each line should be a separate array element
-			expect(postCreatePath['x-postman-test'].script.exec.every((line: any) => typeof line === 'string')).toBe(true);
+			expect(
+				postCreatePath['x-postman-test'].script.exec.every(
+					(line: any) => typeof line === 'string',
+				),
+			).toBe(true);
 		});
 	});
 });
