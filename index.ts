@@ -27,6 +27,7 @@ export * from './notations/controller/middlewares/validation.middleware';
 // Utils
 export * from './utils/array-unify';
 export * from './utils/math';
+export * from './utils/infer-schema';
 
 // Exceptions
 export * from './expections/http.expection';
@@ -42,6 +43,6 @@ export * from './response-builder';
 export * from './notations';
 
 // Swagger integration
-export * from './swagger';
+export * from './api-docs/swagger';
 
 container.bind<IApp>(MINI_TYPES.IApp).to(App).inSingletonScope();

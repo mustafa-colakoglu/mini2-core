@@ -26,7 +26,7 @@
 	"license": "ISC",
 	"description": "Mini Express Framework - Lightweight and modular Express.js framework with TypeScript support",
 	"name": "@mini2/core",
-	"version": "2.0.0",
+	"version": "2.0.1-beta.5",
 	"author": "Mustafa Çolakoglu <mustafacolakoglu94@gmail.com> (https://github.com/mustafa-colakoglu)",
 	"dependencies": {
 		"class-transformer": "^0.5.1",
@@ -37,6 +37,7 @@
 		"fast-glob": "^3.3.3",
 		"inversify": "^7.6.1",
 		"morgan": "^1.10.0",
+		"postman-collection": "^5.3.0",
 		"reflect-metadata": "^0.2.2",
 		"swagger-ui-express": "^5.0.1",
 		"ts-node": "^10.9.2"

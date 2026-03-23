@@ -6,10 +6,14 @@
 
 - 🚀 **Decorator-Based Routing**: Easy route definition with decorators like `@get`, `@post`
 - 📝 **Automatic Swagger Documentation**: API documentation generated automatically
+- 🧪 **Example-Driven OpenAPI**: Generate request/response schemas and examples from `RouteOptions.examples`
+- 🧰 **Postman-Friendly Metadata**: Attach `@preRequestScript` / `@testScript` to operations via OpenAPI vendor extensions
 - 🔧 **Dependency Injection**: Powerful DI container based on InversifyJS
 - 🛡️ **Security Middlewares**: Authentication, authorization, and validation
+- 🔒 **Swagger Basic Auth**: Optionally protect Swagger UI and JSON spec endpoints with Basic Authentication
 - 📦 **Full TypeScript Support**: Type-safe API development
 - 🎯 **Response Builder**: Consistent API responses
+- 🧭 **Autoload Controllers/Injectables**: Optional filesystem-based autoload to discover modules automatically
 - ⚡ **Quick Setup**: Minimal configuration required
 
 ## 📦 Installation
@@ -264,6 +268,43 @@ async downloadFile(@req() req: Request, @res() res: Response) {
 }
 ```
 
+#### **@body() / @query() / @params() / @headers()**
+
+Inject validated/normalized request data into method parameters. When validation is enabled via `@validate(...)`, these decorators prefer the validated instance (class-transformer + class-validator) and fall back to raw Express data.
+
+```typescript
+@put('/:id')
+@validate({
+  params: IdParamsDto,
+  query: SearchQueryDto,
+  body: UpdateDto,
+  headers: MyHeadersDto,
+})
+async update(
+  @params() params: IdParamsDto,
+  @query() query: SearchQueryDto,
+  @body() body: UpdateDto,
+  @headers() headers: MyHeadersDto,
+) {
+  return new ResponseBuilder().ok({ params, query, body, headers });
+}
+```
+
+#### **@next()**
+
+Injects Express `next` into your handler (useful for `next(err)` patterns when you want to delegate error handling).
+
+```typescript
+@get('/health')
+health(@next() next: NextFunction) {
+  try {
+    // ...
+  } catch (e) {
+    next(e);
+  }
+}
+```
+
 ### 🛡️ Security Decorators
 
 #### **@authenticated()**
@@ -314,6 +355,16 @@ async getReports(@req() req: Request) {
 - Uses OR logic: user needs ANY of the specified permissions
 - Throws `ForbiddenException` if insufficient permissions
 
+#### **Default Header-Based Auth (for local/test setups)**
+
+The built-in `authenticatedMiddleware` and `authorizedMiddleware` support a simple header-based flow that is convenient for local development and tests:
+
+- `x-authenticated`: `"true" | "1" | "yes" | "y"` (required for authenticated routes)
+- `x-user-id`: user identifier (optional)
+- `x-user-permissions`: comma-separated permissions (optional, e.g. `"admin,reader"`)
+
+If authentication fails, an `UnauthorizedException` is thrown; if authorization fails, a `ForbiddenException` is thrown.
+
 ### ✅ Validation Decorators
 
 #### **@validate(options: ValidationOptions)**
@@ -340,6 +391,7 @@ async createUser(@req() req: Request) {
 - `body`: DTO class for request body validation
 - `params`: DTO class for URL parameters validation
 - `query`: DTO class for query parameters validation
+- `headers`: DTO class for header validation
 
 **Example DTO Classes:**
 
@@ -604,6 +656,16 @@ async createUser(@req() req: Request) {
 - `body` - Request body validation
 - `params` - URL parameters validation
 - `query` - Query parameters validation
+- `headers` - Request header validation
+
+**Advanced options (via `@validate`)**
+
+Each validation entry can be configured with:
+
+- `transformOptions`: class-transformer options
+- `validatorOptions`: class-validator options
+- `logging`: debug logs for source/transformed payloads
+- `customHttpError`: override the default 400 response with a custom `HttpException`
 
 #### **authenticatedMiddleware**
 
@@ -855,6 +917,81 @@ const swaggerOptions = {
 };
 ```
 
+#### **🧪 Example-Driven OpenAPI (Schemas + Examples)**
+
+You can provide concrete request/response examples per route. If `examples` are present, Swagger generation prefers them to:
+
+- Build request body schemas and attach `example` + `examples`
+- Generate path/query/header parameters (with examples when available)
+- Generate response examples by status code
+
+`examples` is an array and each entry represents one scenario.  
+For each scenario, `response` must include exactly one status code key:
+
+- ✅ `response: { 200: { ... } }`
+- ✅ `response: { 400: { ... } }`
+- ❌ `response: { 200: { ... }, 400: { ... } }`
+
+Example (simplified):
+
+```typescript
+@post('/create', 'Create', {
+  examples: [
+    {
+      request: {
+        body: { title: 'Test Item', order: 1 },
+        query: { page: 1 },
+      },
+      response: {
+        201: { ok: true, id: '123' },
+      },
+    },
+    {
+      request: {
+        body: { order: 1 },
+      },
+      response: {
+        400: { error: 'Validation failed' },
+      },
+    },
+  ],
+})
+create() { /* ... */ }
+```
+
+#### **📮 Postman Collection Behavior with Examples**
+
+When route `examples` are provided:
+
+- One Postman request item is generated per route
+- Request body examples are attached to `request.body.options.raw.examples`
+- Route response examples are included in the same request item's `response[]` list
+- Route-level scripts (`@preRequestScript` / `@testScript`) are attached once at item level
+
+#### **🧰 Postman Scripts via OpenAPI Vendor Extensions**
+
+Attach Postman-compatible scripts to a route:
+
+- `@preRequestScript(script: string)` → `x-postman-prerequest`
+- `@testScript(script: string)` → `x-postman-test`
+
+Swagger/OpenAPI will include them as vendor extensions on the operation, and also as a combined `x-postman-events` list (when present). This is useful for tooling that can import OpenAPI and preserve Postman behaviors.
+
+#### **🔒 Protect Swagger with Basic Auth**
+
+To protect Swagger UI and the raw OpenAPI JSON spec, set `swaggerBasicAuth` in `IConfig`:
+
+```typescript
+await app.init({
+  host: 'localhost',
+  port: 3000,
+  applicationName: 'Protected API',
+  swaggerBasicAuth: { username: 'admin', password: 'secret123' },
+});
+```
+
+This will protect both `docsPath` and `jsonPath` endpoints (defaults: `/api-docs` and `/api-docs.json`).
+
 #### **🔐 Security Documentation**
 
 Security decorators automatically add authentication requirements:
@@ -897,6 +1034,37 @@ async createUser(@req() req: Request) {
 - For production, consider disabling Swagger UI and keeping only JSON endpoint
 - OpenAPI JSON can be used with external documentation tools
 - All validation errors are automatically documented with examples
+
+### 🧭 Autoload (Filesystem Discovery)
+
+The framework can automatically discover and load controllers/injectables from a directory (useful for local dev, tests, and modular apps).
+
+```typescript
+await app.init(
+  { host: 'localhost', port: 3000, applicationName: 'My API' },
+  {
+    autoload: true,
+    workingDirectory: __dirname,
+    extensions: ['.ts', '.mts', '.cts'],
+    patterns: ['**/*.(ts|js)'],
+    logging: true,
+  }
+);
+```
+
+Notes:
+
+- Files starting with `//mini-dont-auto-load` are skipped.
+- In production you typically point `workingDirectory` to your compiled output (e.g. `dist`).
+
+### 🧪 Local Test Server + Postman Collection
+
+This repo includes a runnable demo server and an example Postman collection to quickly validate Swagger generation, examples, and Postman script extensions:
+
+- `local-test-server/index.ts`: starts the server with autoload enabled
+- `local-test-server/local-test-controller.ts`: demonstrates `examples`, `@preRequestScript`, and `@testScript`
+- `GET /postman.json`: generated Postman collection endpoint
+- `local-test-server/Local Test Server.postman_collection.json`: sample exported collection snapshot
 
 ### 📝 TypeScript Support
 
@@ -1013,6 +1181,39 @@ export class UserController {
 		const user = await this.userService.create(userData);
 		return new ResponseBuilder().created(user);
 	}
+}
+```
+
+### 🔎 DI Auto Discovery (`autoBind` + `bindDiscovered`)
+
+For modular apps, you can register bindings via decorators and then bind them in one shot.
+
+```typescript
+import { autoBind, bindDiscovered, MINI_TYPES } from '@mini2/core';
+
+@autoBind(MINI_TYPES.IController, { scope: 'Transient', priority: 10 })
+@controller('/api/users')
+export class UserController extends Controller {}
+
+// After loading modules (or using autoload), bind everything discovered:
+bindDiscovered();
+```
+
+Notes:
+
+- Supported scopes: `Singleton`, `Transient`, `Request`
+- `priority` controls binding order (lower first)
+
+### 🧩 Custom Route Metadata (`@custom`)
+
+If you want to attach arbitrary metadata to a route (e.g., for tooling), use `@custom(key, value)` which stores data in `RouteOptions.extraData`.
+
+```typescript
+@get('/reports')
+@custom('x-internal-owner', 'analytics')
+@custom('x-stability', 'beta')
+async reports() {
+  return new ResponseBuilder().ok({ ok: true });
 }
 ```
 

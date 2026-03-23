@@ -6,7 +6,8 @@ import { IApp } from './interfaces/app.interface';
 import { IConfig } from './interfaces/config.interface';
 import { buildApp, IController } from './notations';
 import { Container, injectable } from 'inversify';
-import { SwaggerIntegration } from './swagger';
+import { SwaggerIntegration } from './api-docs/swagger';
+import { PostmanIntegration } from './api-docs/postman';
 import { MINI_TYPES } from './types';
 import { bindDiscovered, container } from './container';
 import HttpException from './expections/http.expection';
@@ -49,18 +50,34 @@ class App implements IApp {
 			title: config.applicationName,
 			description: `API documentation for ${config.applicationName}`,
 			version: '1.0.0',
-			servers: [
+			servers: config.swaggerServers ?? [
 				{
 					url: `http://${config.host}:${config.port}`,
 					description: 'Development server',
 				},
 			],
-			docsPath: '/api-docs',
-			jsonPath: '/api-docs.json',
+			docsPath: config.swaggerDocsPath ?? '/api-docs',
+			jsonPath: config.swaggerJsonPath ?? '/api-docs.json',
+			...(config.swaggerBasicAuth && { basicAuth: config.swaggerBasicAuth }),
+		});
+		const postmanIntegration = new PostmanIntegration({
+			title: config.applicationName,
+			description: `API documentation for ${config.applicationName}`,
+			version: '1.0.0',
+			servers: config.swaggerServers ?? [
+				{
+					url: `http://${config.host}:${config.port}`,
+					description: 'Development server',
+				},
+			],
+			jsonPath: config.postmanJsonPath ?? '/postman.json',
+			...(config.swaggerBasicAuth && { basicAuth: config.swaggerBasicAuth }),
 		});
 		this.controllers = container.getAll(MINI_TYPES.IController);
 		swaggerIntegration.generateSwaggerSpec(this.controllers);
 		swaggerIntegration.setupSwagger(this.app);
+		postmanIntegration.generatePostmanCollection(this.controllers);
+		postmanIntegration.setupPostman(this.app);
 		buildApp(this.app, this.controllers);
 	}
 	getApp() {
