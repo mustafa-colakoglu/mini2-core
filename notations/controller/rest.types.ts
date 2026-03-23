@@ -90,12 +90,20 @@ export type HttpStatusCode =
 	| 510 // Not Extended
 	| 511; // Network Authentication Required;
 
+type ExactlyOne<T extends Record<PropertyKey, unknown>> = {
+	[K in keyof T]: { [P in K]-?: T[P] } & { [P in Exclude<keyof T, K>]?: never };
+}[keyof T];
+
+type SingleStatusResponse<T = any> = ExactlyOne<{
+	[K in HttpStatusCode]: T;
+}>;
+
 export interface IRequestResponseExample<
 	TReqBody = any,
 	TReqParams = any,
 	TReqQuery = any,
 	TReqHeaders = any,
-	TResponses extends Record<number, any> = Record<number, any>
+	TResponse = any,
 > {
 	request?: {
 		body?: TReqBody;
@@ -103,13 +111,7 @@ export interface IRequestResponseExample<
 		query?: TReqQuery;
 		headers?: TReqHeaders;
 	};
-	response: {
-		[K in keyof TResponses]: {
-			description: string;
-			data: TResponses[K];
-			contentType?: string;
-		};
-	};
+	response: SingleStatusResponse<TResponse>;
 }
 
 export interface RouteOptions {

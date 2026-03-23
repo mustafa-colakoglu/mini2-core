@@ -43,6 +43,7 @@ export class SwaggerIntegration {
 		};
 
 		controllers.forEach((controller) => {
+			const controllerPrototype = Object.getPrototypeOf(controller);
 			const controllerPath = Reflect.getMetadata(
 				keyOfPath,
 				controller.constructor,
@@ -54,14 +55,12 @@ export class SwaggerIntegration {
 
 			const controllerTag = this.extractControllerTag(controllerPath);
 
-			const allProperties = Object.getOwnPropertyNames(
-				Object.getPrototypeOf(controller),
-			);
+			const allProperties = Object.getOwnPropertyNames(controllerPrototype);
 
 			allProperties.forEach((property) => {
 				const routeOptions: RouteOptions = Reflect.getMetadata(
 					keyOfRouteOptions,
-					controller,
+					controllerPrototype,
 					property,
 				);
 
@@ -83,7 +82,9 @@ export class SwaggerIntegration {
 
 				// Generate OpenAPI operation
 				const operation: any = {
-					summary: this.generateSummary(method, fullPath),
+					summary:
+						routeOptions.name?.trim() ||
+						this.generateSummary(method, fullPath),
 					description: this.generateDescription(method, fullPath),
 					tags: [controllerTag],
 					responses: {
@@ -115,17 +116,32 @@ export class SwaggerIntegration {
 
 				// Check if examples are provided
 				if (routeOptions.examples && routeOptions.examples.length > 0) {
-					const example = routeOptions.examples[0];
+					const examples = routeOptions.examples;
+					const firstBodyExample = examples.find((example) => example.request?.body);
 
-					// Add request body from example
-					if (example.request?.body) {
-						const bodySchema = inferSchema(example.request.body);
+					// Add request body from examples
+					if (firstBodyExample?.request?.body) {
+						const bodySchema = inferSchema(firstBodyExample.request.body);
+						const bodyExamples = examples
+							.filter((example) => example.request?.body !== undefined)
+							.reduce(
+								(acc, example, index) => {
+									acc[`example_${index + 1}`] = {
+										summary: `Example ${index + 1}`,
+										value: example.request!.body,
+									};
+									return acc;
+								},
+								{} as Record<string, { summary: string; value: unknown }>,
+							);
+
 						operation.requestBody = {
 							required: true,
 							content: {
 								'application/json': {
 									schema: bodySchema,
-									example: example.request.body,
+									example: firstBodyExample.request.body,
+									examples: bodyExamples,
 								},
 							},
 						};
@@ -134,55 +150,86 @@ export class SwaggerIntegration {
 					// Initialize parameters array
 					if (!operation.parameters) operation.parameters = [];
 
-					// Add path parameters from example (if provided in example)
-					if (example.request?.params && pathParams.length > 0) {
-						const paramsSchema = inferSchema(example.request.params);
-						pathParams.forEach((param) => {
-							operation.parameters!.push({
-								name: param,
-								in: 'path',
-								required: true,
-								schema: paramsSchema.properties?.[param] || { type: 'string' },
-								example: (example.request!.params as any)[param],
-							});
-						});
-					}
+					const pathParamIndex = new Map<string, any>();
+					const queryParamIndex = new Map<string, any>();
+					const headerParamIndex = new Map<string, any>();
 
-					// Add query parameters from example
-					if (example.request?.query) {
-						const querySchema = inferSchema(example.request.query);
-
-						// Add each query parameter separately
-						if (querySchema.properties) {
-							Object.keys(querySchema.properties).forEach((paramName) => {
-								operation.parameters!.push({
-									name: paramName,
-									in: 'query',
-									required: querySchema.required?.includes(paramName) ?? false,
-									schema: querySchema.properties[paramName],
-									example: (example.request!.query as any)[paramName],
-								});
+					examples.forEach((example, exampleIndex) => {
+						if (example.request?.params && pathParams.length > 0) {
+							const paramsSchema = inferSchema(example.request.params);
+							pathParams.forEach((param) => {
+								const key = `path:${param}`;
+								let parameter = pathParamIndex.get(key);
+								if (!parameter) {
+									parameter = {
+										name: param,
+										in: 'path',
+										required: true,
+										schema: paramsSchema.properties?.[param] || { type: 'string' },
+										example: (example.request!.params as any)[param],
+										examples: {},
+									};
+									pathParamIndex.set(key, parameter);
+									operation.parameters!.push(parameter);
+								}
+								parameter.examples[`example_${exampleIndex + 1}`] = {
+									value: (example.request!.params as any)[param],
+								};
 							});
 						}
-					}
 
-					// Add header parameters from example
-					if (example.request?.headers) {
-						const headersSchema = inferSchema(example.request.headers);
-
-						// Add each header separately
-						if (headersSchema.properties) {
-							Object.keys(headersSchema.properties).forEach((headerName) => {
-								operation.parameters!.push({
-									name: headerName,
-									in: 'header',
-									required: headersSchema.required?.includes(headerName) ?? false,
-									schema: headersSchema.properties[headerName],
-									example: (example.request!.headers as any)[headerName],
+						if (example.request?.query) {
+							const querySchema = inferSchema(example.request.query);
+							if (querySchema.properties) {
+								Object.keys(querySchema.properties).forEach((paramName) => {
+									const key = `query:${paramName}`;
+									let parameter = queryParamIndex.get(key);
+									if (!parameter) {
+										parameter = {
+											name: paramName,
+											in: 'query',
+											required:
+												querySchema.required?.includes(paramName) ?? false,
+											schema: querySchema.properties[paramName],
+											example: (example.request!.query as any)[paramName],
+											examples: {},
+										};
+										queryParamIndex.set(key, parameter);
+										operation.parameters!.push(parameter);
+									}
+									parameter.examples[`example_${exampleIndex + 1}`] = {
+										value: (example.request!.query as any)[paramName],
+									};
 								});
-							});
+							}
 						}
-					}
+
+						if (example.request?.headers) {
+							const headersSchema = inferSchema(example.request.headers);
+							if (headersSchema.properties) {
+								Object.keys(headersSchema.properties).forEach((headerName) => {
+									const key = `header:${headerName}`;
+									let parameter = headerParamIndex.get(key);
+									if (!parameter) {
+										parameter = {
+											name: headerName,
+											in: 'header',
+											required:
+												headersSchema.required?.includes(headerName) ?? false,
+											schema: headersSchema.properties[headerName],
+											example: (example.request!.headers as any)[headerName],
+											examples: {},
+										};
+										headerParamIndex.set(key, parameter);
+										operation.parameters!.push(parameter);
+									}
+									parameter.examples[`example_${exampleIndex + 1}`] = {
+										value: (example.request!.headers as any)[headerName],
+									};
+								});
+							}
+						}
+					});
 				} else {
 					// Fallback to validations if no examples provided
 					if (
@@ -205,29 +252,35 @@ export class SwaggerIntegration {
 
 				// Add responses from examples
 				if (routeOptions.examples && routeOptions.examples.length > 0) {
-					const example = routeOptions.examples[0];
 					operation.responses = {};
 
-					const responses = example.response as Record<string, any>;
-					Object.keys(responses).forEach((statusCode) => {
-						const responseData = responses[statusCode];
-						const responseSchema = inferSchema(responseData.data);
+					routeOptions.examples.forEach((example, exampleIndex) => {
+						Object.entries(example.response as Record<string, unknown>).forEach(
+							([statusCode, responseData]) => {
+								const contentType = 'application/json';
+								const responseSchema = inferSchema(responseData);
 
-						operation.responses[statusCode] = {
-							description: responseData.description,
-							content: {
-								[responseData.contentType || 'application/json']: {
-									schema: responseSchema,
-									example: responseData.data,
-									examples: {
-										default: {
-											summary: responseData.description,
-											value: responseData.data,
+								if (!operation.responses[statusCode]) {
+									operation.responses[statusCode] = {
+										description: `Status ${statusCode}`,
+										content: {
+											[contentType]: {
+												schema: responseSchema,
+												example: responseData,
+												examples: {},
+											},
 										},
-									},
-								},
+									};
+								}
+
+								operation.responses[statusCode].content[contentType].examples[
+									`example_${exampleIndex + 1}`
+								] = {
+									summary: `Example ${exampleIndex + 1}`,
+									value: responseData,
+								};
 							},
-						};
+						);
 					});
 				} else {
 					// Fallback to default responses if no examples
@@ -278,9 +331,10 @@ export class SwaggerIntegration {
 	private generateSummary(method: string, path: string): string {
 		const action = method.toUpperCase();
 		const resource = this.extractResourceName(path);
+		const hasPathParam = /\{[a-zA-Z_][a-zA-Z0-9_]*\}/.test(path);
 
 		const actionMap: { [key: string]: string } = {
-			GET: path.includes('/:') ? `Get ${resource} by ID` : `Get all ${resource}`,
+			GET: hasPathParam ? `Get ${resource} by ID` : `Get all ${resource}`,
 			POST: `Create ${resource}`,
 			PUT: `Update ${resource}`,
 			PATCH: `Partially update ${resource}`,
@@ -293,9 +347,10 @@ export class SwaggerIntegration {
 	private generateDescription(method: string, path: string): string {
 		const action = method.toLowerCase();
 		const resource = this.extractResourceName(path);
+		const hasPathParam = /\{[a-zA-Z_][a-zA-Z0-9_]*\}/.test(path);
 
 		const descriptions: { [key: string]: string } = {
-			get: path.includes('/:')
+			get: hasPathParam
 				? `Retrieve a specific ${resource} by its ID`
 				: `Retrieve all ${resource} records`,
 			post: `Create a new ${resource} record`,
@@ -317,8 +372,8 @@ export class SwaggerIntegration {
 		const segments = path.split('/').filter(Boolean);
 		let resource = segments[segments.length - 1];
 
-		// Remove path parameters (e.g., :id)
-		if (resource.startsWith(':')) {
+		// Remove path parameters (e.g., :id or {id})
+		if (resource.startsWith(':') || resource.startsWith('{')) {
 			resource = segments[segments.length - 2] || 'Resource';
 		}
 

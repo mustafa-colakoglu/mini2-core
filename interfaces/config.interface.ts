@@ -16,4 +16,5 @@ export interface IConfig {
 	swaggerJsonPath?: string;
 	swaggerServers?: ISwaggerServer[];
 	swaggerBasicAuth?: ISwaggerBasicAuth;
+	postmanJsonPath?: string;
 }
