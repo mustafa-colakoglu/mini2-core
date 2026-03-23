@@ -6,7 +6,7 @@ import { IApp } from './interfaces/app.interface';
 import { IConfig } from './interfaces/config.interface';
 import { buildApp, IController } from './notations';
 import { Container, injectable } from 'inversify';
-import { SwaggerIntegration } from './swagger';
+import { SwaggerIntegration } from './api-docs/swagger';
 import { MINI_TYPES } from './types';
 import { bindDiscovered, container } from './container';
 import HttpException from './expections/http.expection';

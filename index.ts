@@ -43,6 +43,6 @@ export * from './response-builder';
 export * from './notations';
 
 // Swagger integration
-export * from './swagger';
+export * from './api-docs/swagger';
 
 container.bind<IApp>(MINI_TYPES.IApp).to(App).inSingletonScope();

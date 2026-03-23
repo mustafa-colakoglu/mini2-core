@@ -1,11 +1,11 @@
 import 'reflect-metadata';
 import swaggerUi from 'swagger-ui-express';
 import { Express, Request, Response, NextFunction } from 'express';
-import { keyOfPath, keyOfRouteOptions, RouteOptions } from './notations';
+import { keyOfPath, keyOfRouteOptions, RouteOptions } from '../notations';
 import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
 import { SwaggerOptions } from 'swagger-ui-express';
-import { ISwaggerBasicAuth } from './interfaces/config.interface';
-import { inferSchema } from './utils/infer-schema';
+import { ISwaggerBasicAuth } from '../interfaces/config.interface';
+import { inferSchema } from '../utils/infer-schema';
 
 export interface ISwaggerIntegrationOptions extends SwaggerOptions {
 	basicAuth?: ISwaggerBasicAuth;
@@ -100,49 +100,6 @@ export class SwaggerIntegration {
 					},
 				};
 
-				// Add Postman scripts as vendor extensions (for tools that read OpenAPI)
-				const postmanEvents: any[] = [];
-
-				if (routeOptions.preRequestScript) {
-					const preRequestScript = {
-						type: 'text/javascript',
-						exec: routeOptions.preRequestScript.split('\n'),
-					};
-
-					operation['x-postman-prerequest'] = {
-						script: preRequestScript,
-					};
-
-					postmanEvents.push({
-						listen: 'prerequest',
-						script: {
-							...preRequestScript,
-						},
-					});
-				}
-
-				if (routeOptions.testScript) {
-					const testScript = {
-						type: 'text/javascript',
-						exec: routeOptions.testScript.split('\n'),
-					};
-
-					operation['x-postman-test'] = {
-						script: testScript,
-					};
-
-					postmanEvents.push({
-						listen: 'test',
-						script: {
-							...testScript,
-						},
-					});
-				}
-
-				if (postmanEvents.length > 0) {
-					operation['x-postman-events'] = postmanEvents;
-				}
-
 				// Add parameters from path
 				const pathParams = this.extractPathParameters(routeOptions.path);
 				if (pathParams.length > 0) {
@@ -194,7 +151,7 @@ export class SwaggerIntegration {
 					// Add query parameters from example
 					if (example.request?.query) {
 						const querySchema = inferSchema(example.request.query);
-						
+
 						// Add each query parameter separately
 						if (querySchema.properties) {
 							Object.keys(querySchema.properties).forEach((paramName) => {
@@ -212,7 +169,7 @@ export class SwaggerIntegration {
 					// Add header parameters from example
 					if (example.request?.headers) {
 						const headersSchema = inferSchema(example.request.headers);
-						
+
 						// Add each header separately
 						if (headersSchema.properties) {
 							Object.keys(headersSchema.properties).forEach((headerName) => {
@@ -228,7 +185,10 @@ export class SwaggerIntegration {
 					}
 				} else {
 					// Fallback to validations if no examples provided
-					if (['post', 'put', 'patch'].includes(method) && routeOptions.validations) {
+					if (
+						['post', 'put', 'patch'].includes(method) &&
+						routeOptions.validations
+					) {
 						const bodyValidation = routeOptions.validations?.find((v) => v.body);
 						if (bodyValidation) {
 							operation.requestBody = {
@@ -252,7 +212,7 @@ export class SwaggerIntegration {
 					Object.keys(responses).forEach((statusCode) => {
 						const responseData = responses[statusCode];
 						const responseSchema = inferSchema(responseData.data);
-						
+
 						operation.responses[statusCode] = {
 							description: responseData.description,
 							content: {
