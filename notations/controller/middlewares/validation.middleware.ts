@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
-import { plainToInstance, TransformOptions } from 'class-transformer';
+import { ClassTransformOptions, plainToInstance } from 'class-transformer';
 import { validate, ValidatorOptions } from 'class-validator';
 import HttpException from '../../../expections/http.expection';
 export type IValidation = {
@@ -8,7 +8,7 @@ export type IValidation = {
 	query?: any;
 	headers?: any;
 	logging?: boolean;
-	transformOptions?: TransformOptions;
+	transformOptions?: ClassTransformOptions;
 	validatorOptions?: ValidatorOptions;
 	customHttpError?:HttpException;
 };
@@ -16,7 +16,7 @@ export default function validationMiddleware(
 	ValidationClass: new (...args: any[]) => any,
 	type: keyof IValidation,
 	logging?: boolean,
-	transformOptions?: TransformOptions,
+	transformOptions?: ClassTransformOptions,
 	validatorOptions?: ValidatorOptions,
 	customHttpError?:HttpException,
 ): RequestHandler {
