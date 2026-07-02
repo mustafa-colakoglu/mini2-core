@@ -11,7 +11,6 @@ import { PostmanIntegration } from './api-docs/postman';
 import { MINI_TYPES } from './types';
 import { container } from './container';
 import HttpException from './expections/http.expection';
-import { LoadInjectablesOptions, setupInjectables } from './loader';
 
 export const keyOfMini2AppConfig = Symbol('mini2AppConfig');
 
@@ -22,7 +21,7 @@ export type Mini2AppRegistration = {
 	config: IConfig;
 };
 
-function getMini2AppRegistry(): Mini2AppRegistration[] {
+export function getMini2AppRegistry(): Mini2AppRegistration[] {
 	const g = globalThis as any;
 	if (!g[MINI2_APP_REGISTRY_KEY]) g[MINI2_APP_REGISTRY_KEY] = [];
 	return g[MINI2_APP_REGISTRY_KEY] as Mini2AppRegistration[];
@@ -218,25 +217,4 @@ export function Mini2App(config: IConfig) {
 
 		return target;
 	};
-}
-
-/**
- * AppV2 bootstrap fonksiyonu. Önce injectable'ları yükler (autoload),
- * ardından @Mini2App ile kayıtlı class'ı container'dan alıp başlatır.
- */
-export async function startMini2App(
-	loadInjectablesOptions?: LoadInjectablesOptions
-): Promise<Mini2AppClass> {
-	setupInjectables(loadInjectablesOptions);
-
-	const registry = getMini2AppRegistry();
-	if (registry.length === 0) {
-		throw new Error(
-			'No @Mini2App decorated class found. Decorate a class extending Mini2AppClass with @Mini2App(config), and make sure its file is imported or autoloaded.'
-		);
-	}
-
-	const instance = container.get<Mini2AppClass>(MINI_TYPES.IAppV2);
-	await instance.start();
-	return instance;
 }

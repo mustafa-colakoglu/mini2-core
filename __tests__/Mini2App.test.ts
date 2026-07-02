@@ -1,4 +1,4 @@
-// __tests__/app-v2.test.ts
+// __tests__/Mini2App.test.ts
 import 'reflect-metadata';
 import request from 'supertest';
 import {

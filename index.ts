@@ -15,7 +15,8 @@ export { App };
 export { MINI_TYPES };
 
 // AppV2 (Mini2App)
-export * from './app-v2';
+export * from './Mini2App';
+export * from './startMini2App';
 
 // DI loader (standalone kullanım için)
 export * from './loader';
