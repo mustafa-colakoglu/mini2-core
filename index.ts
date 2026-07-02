@@ -14,6 +14,12 @@ export { IApp };
 export { App };
 export { MINI_TYPES };
 
+// AppV2 (Mini2App)
+export * from './app-v2';
+
+// DI loader (standalone kullanım için)
+export * from './loader';
+
 // Interfaces
 export * from './interfaces/app.interface';
 export * from './notations/controller/interfaces/authenticated.interface';

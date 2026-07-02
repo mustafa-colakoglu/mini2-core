@@ -1057,6 +1057,66 @@ Notes:
 - Files starting with `//mini-dont-auto-load` are skipped.
 - In production you typically point `workingDirectory` to your compiled output (e.g. `dist`).
 
+### 🧬 Standalone DI (`setupInjectables`)
+
+You can use the framework only for dependency injection, without starting an Express server. `setupInjectables` runs the full DI bootstrap in one call: it enables the autoload flag, loads all injectable files from the given directory, and binds every discovered class (`autoBind`, `@controller`, ...) to the container.
+
+```typescript
+import { setupInjectables, container } from '@mini2/core';
+
+const result = setupInjectables({
+	autoload: true,
+	workingDirectory: __dirname,
+	extensions: ['.ts'],
+});
+// result: { loaded: true, files: [...], count: n }
+
+// Container is now fully populated — no Express involved:
+const userService = container.get<UserService>(USER_SERVICE);
+```
+
+The raw `loadInjectables` function (file discovery + require only, no container binding) is also exported if you need lower-level control.
+
+### 🚀 AppV2 (`@Mini2App` + `Mini2AppClass`)
+
+AppV2 is a tidier, decorator-driven way to bootstrap an application. Decorate a class extending `Mini2AppClass` with `@Mini2App(config)`, then call `startMini2App()`; the app is registered in the container (`MINI_TYPES.IAppV2`, singleton) and started automatically after injectables are loaded.
+
+```typescript
+import { Mini2App, Mini2AppClass, startMini2App } from '@mini2/core';
+
+@Mini2App({
+	host: 'localhost',
+	port: 3000,
+	applicationName: 'My API',
+})
+class MyApp extends Mini2AppClass {
+	protected async onBeforeInit(): Promise<void> {
+		// runs before middlewares/routes are set up
+	}
+
+	protected async onAfterInit(): Promise<void> {
+		// runs after the server starts listening
+	}
+}
+
+const app = await startMini2App({
+	autoload: true,
+	workingDirectory: __dirname,
+});
+
+// app.getApp()  -> Express instance (e.g. for supertest)
+// await app.stop() -> graceful shutdown
+```
+
+How it works:
+
+- `startMini2App(loadOptions?)` first calls `setupInjectables(loadOptions)`, then resolves the `@Mini2App` class from the container and calls `start()`. The decorated class can also be discovered via autoload itself.
+- `start()` runs a clear pipeline, each step being an overridable `protected` method: `onBeforeInit → setupMiddlewares → resolveControllers → setupDocs (Swagger + Postman) → setupRoutes → setupErrorHandler → listen → onAfterInit`.
+- Unlike the legacy `App`, the server starts listening only after all routes and the error handler are mounted.
+- `onError(error, req, res)` can be overridden to customize error handling (defaults to the standard `HttpException` handler).
+- Only one `@Mini2App` class is allowed per application; a second registration throws.
+- The legacy `App` class remains unchanged and fully supported.
+
 ### 🧪 Local Test Server + Postman Collection
 
 This repo includes a runnable demo server and an example Postman collection to quickly validate Swagger generation, examples, and Postman script extensions:
@@ -1223,6 +1283,12 @@ async reports() {
 // Core classes
 export { App } from '@mini2/core';
 export { Container, container } from '@mini2/core';
+
+// AppV2 (Mini2App)
+export { Mini2App, Mini2AppClass, startMini2App, IAppV2 } from '@mini2/core';
+
+// DI loader (standalone usage)
+export { setupInjectables, loadInjectables } from '@mini2/core';
 
 // Interfaces
 export {

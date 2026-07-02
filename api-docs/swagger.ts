@@ -48,7 +48,7 @@ export class SwaggerIntegration {
 				keyOfPath,
 				controller.constructor,
 			);
-			if (!controllerPath) {
+			if (controllerPath === undefined || controllerPath === null) {
 				console.log(`❌ No path metadata found for ${controller.constructor.name}`);
 				return;
 			}
@@ -403,12 +403,13 @@ export class SwaggerIntegration {
 	private extractControllerTag(controllerPath: string): string {
 		const segments = controllerPath.split('/').filter(Boolean);
 		const lastSegment = segments[segments.length - 1];
+		if (!lastSegment) return 'Root';
 		return lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1);
 	}
 
 	private extractResourceName(path: string): string {
 		const segments = path.split('/').filter(Boolean);
-		let resource = segments[segments.length - 1];
+		let resource = segments[segments.length - 1] || 'Resource';
 
 		// Remove path parameters (e.g., :id or {id})
 		if (resource.startsWith(':') || resource.startsWith('{')) {

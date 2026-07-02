@@ -131,7 +131,7 @@ export class PostmanIntegration {
 				keyOfPath,
 				controller.constructor,
 			) as string | undefined;
-			if (!controllerPath) return;
+			if (controllerPath === undefined || controllerPath === null) return;
 
 			const folderName = this.extractControllerFolderName(controllerPath);
 			const allProperties = Object.getOwnPropertyNames(controllerPrototype);

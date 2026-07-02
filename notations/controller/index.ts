@@ -405,7 +405,8 @@ export function buildRouterFromController(
 	const proto = Object.getPrototypeOf(controllerInstance);
 
 	const path = Reflect.getMetadata(keyOfPath, ctor);
-	if (!path) throw new Error('Controller class must have a path property');
+	if (path === undefined || path === null)
+		throw new Error('Controller class must have a path property');
 
 	const allProperties = Object.getOwnPropertyNames(proto);
 	const router = express.Router();

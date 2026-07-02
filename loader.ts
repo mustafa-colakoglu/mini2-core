@@ -2,6 +2,7 @@
 import path from 'node:path';
 import fg from 'fast-glob';
 import fs from 'node:fs';
+import { bindDiscovered } from './container';
 export type LoadInjectablesOptions = {
 	autoload?: boolean;
 	workingDirectory?: string;
@@ -75,4 +76,25 @@ export function loadInjectables(opts?: LoadInjectablesOptions) {
 		if (opts?.logging) console.log('------ NO FILES FOUND TO AUTO LOAD ------');
 	}
 	return { files, count: files.length };
+}
+
+export type SetupInjectablesResult = {
+	loaded: boolean;
+	files?: string[];
+	count?: number;
+};
+
+/**
+ * Standalone DI bootstrap: autoload flag'ini set eder, injectable dosyalarını
+ * yükler ve keşfedilen binding'leri container'a bağlar. Express'e ihtiyaç
+ * duymadan projeyi sadece DI için kullanmayı sağlar.
+ */
+export function setupInjectables(
+	options?: LoadInjectablesOptions
+): SetupInjectablesResult {
+	if (!options?.autoload) return { loaded: false };
+	(globalThis as any).MINI_AUTOLOAD = true;
+	const result = loadInjectables(options);
+	bindDiscovered();
+	return { loaded: true, ...result };
 }
