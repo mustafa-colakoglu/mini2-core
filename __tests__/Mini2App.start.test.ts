@@ -29,12 +29,16 @@ class ManualController extends Controller {
 	}
 }
 
-@Mini2App({
-	host: 'localhost',
-	port: TEST_PORT,
-	applicationName: 'Manual Start App',
-})
-class ManualStartApp extends Mini2AppClass {}
+@Mini2App()
+class ManualStartApp extends Mini2AppClass {
+	protected resolveConfig() {
+		return {
+			host: 'localhost',
+			port: TEST_PORT,
+			applicationName: 'Manual Start App',
+		};
+	}
+}
 
 describe('Mini2App manual start (without startMini2App)', () => {
 	let app: ManualStartApp;
@@ -54,7 +58,7 @@ describe('Mini2App manual start (without startMini2App)', () => {
 		await app.stop();
 	});
 
-	it('starts the server with the decorator config', () => {
+	it('starts the server with config from resolveConfig()', () => {
 		expect(app).toBeInstanceOf(ManualStartApp);
 		expect(app.server).toBeDefined();
 		expect(app.config.port).toBe(TEST_PORT);

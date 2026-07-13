@@ -12,13 +12,10 @@ import { MINI_TYPES } from './types';
 import { container } from './container';
 import HttpException from './expections/http.expection';
 
-export const keyOfMini2AppConfig = Symbol('mini2AppConfig');
-
 const MINI2_APP_REGISTRY_KEY = Symbol.for('MINI2_APP_REGISTRY');
 
 export type Mini2AppRegistration = {
 	target: new (...args: any[]) => Mini2AppClass;
-	config: IConfig;
 };
 
 export function getMini2AppRegistry(): Mini2AppRegistration[] {
@@ -37,8 +34,9 @@ export interface IAppV2 {
 }
 
 /**
- * AppV2 base class. `@Mini2App(config)` ile dekore edilmiş ve bu class'tan
+ * AppV2 base class. `@Mini2App()` ile dekore edilmiş ve bu class'tan
  * extend eden bir class, `startMini2App()` ile otomatik olarak başlatılır.
+ * Config alt class'ta `resolveConfig()` override edilerek sağlanır.
  *
  * Pipeline adımları (`start()` içinde sırasıyla):
  * onBeforeInit → setupMiddlewares → resolveControllers → setupDocs →
@@ -107,16 +105,9 @@ export class Mini2AppClass implements IAppV2 {
 	/* ---------------- pipeline steps ---------------- */
 
 	protected resolveConfig(): IConfig {
-		const config: IConfig | undefined = Reflect.getMetadata(
-			keyOfMini2AppConfig,
-			this.constructor
+		throw new Error(
+			`${this.constructor.name} must override resolveConfig() to provide application configuration.`
 		);
-		if (!config) {
-			throw new Error(
-				`${this.constructor.name} must be decorated with @Mini2App(config)`
-			);
-		}
-		return config;
 	}
 
 	protected setupMiddlewares(): void {
@@ -188,12 +179,11 @@ export class Mini2AppClass implements IAppV2 {
 }
 
 /**
- * AppV2 class decorator'ı. Class'ı global registry'ye kaydeder, config'i
- * metadata olarak iliştirir ve `MINI_TYPES.IAppV2` token'ı ile container'a
- * singleton olarak bind eder. Uygulamada yalnızca bir tane @Mini2App class'ı
- * olabilir.
+ * AppV2 class decorator'ı. Class'ı global registry'ye kaydeder ve
+ * `MINI_TYPES.IAppV2` token'ı ile container'a singleton olarak bind eder.
+ * Uygulamada yalnızca bir tane @Mini2App class'ı olabilir.
  */
-export function Mini2App(config: IConfig) {
+export function Mini2App() {
 	return function <T extends new (...args: any[]) => Mini2AppClass>(
 		target: T
 	): T {
@@ -205,10 +195,8 @@ export function Mini2App(config: IConfig) {
 			);
 		}
 
-		Reflect.defineMetadata(keyOfMini2AppConfig, config, target);
-
 		if (!existing) {
-			registry.push({ target, config });
+			registry.push({ target });
 			injectable()(target);
 			if (!container.isBound(MINI_TYPES.IAppV2)) {
 				container.bind(MINI_TYPES.IAppV2).to(target).inSingletonScope();

@@ -15,14 +15,18 @@ import {
 
 const TEST_PORT = 3010;
 
-@Mini2App({
-	host: 'localhost',
-	port: TEST_PORT,
-	applicationName: 'App V2 Test',
-})
+@Mini2App()
 class TestAppV2 extends Mini2AppClass {
 	public beforeInitCalled = false;
 	public afterInitCalled = false;
+
+	protected resolveConfig() {
+		return {
+			host: 'localhost',
+			port: TEST_PORT,
+			applicationName: 'App V2 Test',
+		};
+	}
 
 	protected async onBeforeInit(): Promise<void> {
 		this.beforeInitCalled = true;
@@ -55,7 +59,7 @@ describe('AppV2 (Mini2App)', () => {
 		expect(app.server).toBeDefined();
 	});
 
-	it('applies the decorator config', () => {
+	it('applies config from resolveConfig()', () => {
 		expect(app.config).toEqual({
 			host: 'localhost',
 			port: TEST_PORT,
@@ -99,12 +103,16 @@ describe('AppV2 (Mini2App)', () => {
 
 	it('rejects a second @Mini2App class', () => {
 		const defineSecondApp = () => {
-			@Mini2App({
-				host: 'localhost',
-				port: 3011,
-				applicationName: 'Second App',
-			})
-			class SecondAppV2 extends Mini2AppClass {}
+			@Mini2App()
+			class SecondAppV2 extends Mini2AppClass {
+				protected resolveConfig() {
+					return {
+						host: 'localhost',
+						port: 3011,
+						applicationName: 'Second App',
+					};
+				}
+			}
 			return SecondAppV2;
 		};
 

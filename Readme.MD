@@ -1079,17 +1079,35 @@ The raw `loadInjectables` function (file discovery + require only, no container 
 
 ### 🚀 AppV2 (`@Mini2App` + `Mini2AppClass`)
 
-AppV2 is a tidier, decorator-driven way to bootstrap an application. Decorate a class extending `Mini2AppClass` with `@Mini2App(config)`, then call `startMini2App()`; the app is registered in the container (`MINI_TYPES.IAppV2`, singleton) and started automatically after injectables are loaded.
+AppV2 is a tidier, decorator-driven way to bootstrap an application. `@Mini2App()` marks a class as the application entry point; configuration is provided by overriding `resolveConfig()` in the subclass. DI bootstrap (`setupInjectables`) and app startup (`startMini2App`) are intentionally separate.
+
+**Typical three-file layout:**
 
 ```typescript
-import { Mini2App, Mini2AppClass, startMini2App } from '@mini2/core';
+// index.ts — DI bootstrap only
+import { setupInjectables } from '@mini2/core';
 
-@Mini2App({
-	host: 'localhost',
-	port: 3000,
-	applicationName: 'My API',
-})
-class MyApp extends Mini2AppClass {
+setupInjectables({
+	autoload: true,
+	workingDirectory: __dirname,
+	extensions: ['.ts'],
+});
+```
+
+```typescript
+// app.ts — application class
+import { IConfig, Mini2App, Mini2AppClass } from '@mini2/core';
+
+@Mini2App()
+export class MyApp extends Mini2AppClass {
+	protected resolveConfig(): IConfig {
+		return {
+			host: process.env.HOST ?? 'localhost',
+			port: Number(process.env.PORT ?? 3000),
+			applicationName: 'My API',
+		};
+	}
+
 	protected async onBeforeInit(): Promise<void> {
 		// runs before middlewares/routes are set up
 	}
@@ -1098,19 +1116,31 @@ class MyApp extends Mini2AppClass {
 		// runs after the server starts listening
 	}
 }
+```
 
-const app = await startMini2App({
-	autoload: true,
-	workingDirectory: __dirname,
-});
+```typescript
+// bootstrap.ts — start the app (setup already done in index.ts)
+import { startMini2App } from '@mini2/core';
+import './app'; // or autoload discovers app.ts
 
+const app = await startMini2App();
 // app.getApp()  -> Express instance (e.g. for supertest)
 // await app.stop() -> graceful shutdown
 ```
 
+**Single-file convenience (tests / small apps):**
+
+```typescript
+const app = await startMini2App({
+	autoload: true,
+	workingDirectory: __dirname,
+});
+```
+
 How it works:
 
-- `startMini2App(loadOptions?)` first calls `setupInjectables(loadOptions)`, then resolves the `@Mini2App` class from the container and calls `start()`. The decorated class can also be discovered via autoload itself.
+- `@Mini2App()` registers the class in the container (`MINI_TYPES.IAppV2`, singleton). It does not accept config; override `resolveConfig()` instead.
+- `startMini2App(loadOptions?)` calls `setupInjectables(loadOptions)` **only when loadOptions is provided**. If omitted, setup is skipped and `setupInjectables` is assumed to have run earlier (e.g. in `index.ts`).
 - `start()` runs a clear pipeline, each step being an overridable `protected` method: `onBeforeInit → setupMiddlewares → resolveControllers → setupDocs (Swagger + Postman) → setupRoutes → setupErrorHandler → listen → onAfterInit`.
 - Unlike the legacy `App`, the server starts listening only after all routes and the error handler are mounted.
 - `onError(error, req, res)` can be overridden to customize error handling (defaults to the standard `HttpException` handler).

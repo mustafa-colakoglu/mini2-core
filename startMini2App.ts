@@ -4,18 +4,22 @@ import { LoadInjectablesOptions, setupInjectables } from './loader';
 import { getMini2AppRegistry, Mini2AppClass } from './Mini2App';
 
 /**
- * AppV2 bootstrap fonksiyonu. Önce injectable'ları yükler (autoload),
- * ardından @Mini2App ile kayıtlı class'ı container'dan alıp başlatır.
+ * AppV2 bootstrap fonksiyonu. loadInjectablesOptions verilirse önce
+ * setupInjectables çalıştırır; verilmezse setup atlanır (setupInjectables'ın
+ * daha önce çağrıldığı varsayılır). Ardından @Mini2App ile kayıtlı class'ı
+ * container'dan alıp başlatır.
  */
 export async function startMini2App(
 	loadInjectablesOptions?: LoadInjectablesOptions
 ): Promise<Mini2AppClass> {
-	setupInjectables(loadInjectablesOptions);
+	if (loadInjectablesOptions !== undefined) {
+		setupInjectables(loadInjectablesOptions);
+	}
 
 	const registry = getMini2AppRegistry();
 	if (registry.length === 0) {
 		throw new Error(
-			'No @Mini2App decorated class found. Decorate a class extending Mini2AppClass with @Mini2App(config), and make sure its file is imported or autoloaded.'
+			'No @Mini2App decorated class found. Decorate a class extending Mini2AppClass with @Mini2App(), override resolveConfig(), and make sure its file is imported or autoloaded.'
 		);
 	}
 
