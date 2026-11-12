@@ -1105,6 +1105,7 @@ export class MyApp extends Mini2AppClass {
 			host: process.env.HOST ?? 'localhost',
 			port: Number(process.env.PORT ?? 3000),
 			applicationName: 'My API',
+			docs: { enabled: true },
 		};
 	}
 
@@ -1135,6 +1136,24 @@ const app = await startMini2App({
 	autoload: true,
 	workingDirectory: __dirname,
 });
+```
+
+### API documentation endpoints (security default)
+
+Swagger/Postman routes are **off by default**. Enable explicitly:
+
+```typescript
+docs: { enabled: true },
+```
+
+Legacy fields (`swaggerDocsPath`, `swaggerJsonPath`, `postmanJsonPath`, `swaggerBasicAuth`) still enable docs for backward compatibility and emit a one-time console warning.
+
+### Default middleware
+
+`cors()` and `morgan('dev')` remain on by default. Disable for production hardening:
+
+```typescript
+middleware: { cors: false, morgan: false },
 ```
 
 How it works:
