@@ -52,7 +52,7 @@ describe('Swagger Basic Authentication', () => {
 		it('should return 401 without credentials', async () => {
 			const res = await request(app).get('/api-docs.json');
 			expect(res.status).toBe(401);
-			expect(res.text).toBe('Authentication required');
+			expect(res.text).toBe('Unauthorized');
 			expect(res.headers['www-authenticate']).toBe('Basic realm="Swagger Documentation"');
 		});
 
@@ -62,7 +62,7 @@ describe('Swagger Basic Authentication', () => {
 				.auth('admin', 'wrongpassword');
 			
 			expect(res.status).toBe(401);
-			expect(res.text).toBe('Invalid credentials');
+			expect(res.text).toBe('Unauthorized');
 		});
 
 		it('should return 200 with valid credentials', async () => {
@@ -80,7 +80,7 @@ describe('Swagger Basic Authentication', () => {
 		it('should return 401 without credentials for UI', async () => {
 			const res = await request(app).get('/api-docs/');
 			expect(res.status).toBe(401);
-			expect(res.text).toBe('Authentication required');
+			expect(res.text).toBe('Unauthorized');
 		});
 
 		it('should return 401 with invalid credentials for UI', async () => {
@@ -89,7 +89,7 @@ describe('Swagger Basic Authentication', () => {
 				.auth('wrong', 'credentials');
 			
 			expect(res.status).toBe(401);
-			expect(res.text).toBe('Invalid credentials');
+			expect(res.text).toBe('Unauthorized');
 		});
 
 		it('should allow access to UI with valid credentials', async () => {
@@ -108,7 +108,7 @@ describe('Swagger Basic Authentication', () => {
 				.auth('admin', 'wrongpass');
 			
 			expect(res.status).toBe(401);
-			expect(res.text).toBe('Invalid credentials');
+			expect(res.text).toBe('Unauthorized');
 		});
 
 		it('should reject with wrong username but correct password', async () => {
@@ -117,7 +117,7 @@ describe('Swagger Basic Authentication', () => {
 				.auth('wronguser', 'secret123');
 			
 			expect(res.status).toBe(401);
-			expect(res.text).toBe('Invalid credentials');
+			expect(res.text).toBe('Unauthorized');
 		});
 
 		it('should reject with empty credentials', async () => {
@@ -126,7 +126,7 @@ describe('Swagger Basic Authentication', () => {
 				.auth('', '');
 			
 			expect(res.status).toBe(401);
-			expect(res.text).toBe('Invalid credentials');
+			expect(res.text).toBe('Unauthorized');
 		});
 	});
 });

@@ -6,6 +6,7 @@ import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
 import { SwaggerOptions } from 'swagger-ui-express';
 import { ISwaggerBasicAuth } from '../interfaces/config.interface';
 import { inferSchema } from '../utils/infer-schema';
+import { createBasicAuthMiddleware } from './basic-auth.middleware';
 
 export interface ISwaggerIntegrationOptions extends SwaggerOptions {
 	basicAuth?: ISwaggerBasicAuth;
@@ -66,7 +67,9 @@ export class SwaggerIntegration {
 
 				if (!routeOptions || !routeOptions.path || !routeOptions.method) {
 					if (property !== 'constructor') {
-						console.log(`⚠️ Skipping ${property} - no valid route options`);
+						const logging = (globalThis as any).logging;
+						if (logging)
+							console.log(`⚠️ Skipping ${property} - no valid route options`);
 					}
 					return;
 				}
@@ -266,9 +269,7 @@ export class SwaggerIntegration {
 								const responseDescription = hasLegacyShape
 									? rawResponse.description
 									: `Status ${statusCode}`;
-								const responseValue = hasLegacyShape
-									? rawResponse.data
-									: responseData;
+								const responseValue = hasLegacyShape ? rawResponse.data : responseData;
 								const responseSchema = inferSchema(responseValue);
 
 								if (!operation.responses[statusCode]) {
@@ -292,8 +293,7 @@ export class SwaggerIntegration {
 								};
 
 								if (
-									!operation.responses[statusCode].content[contentType].examples
-										.default
+									!operation.responses[statusCode].content[contentType].examples.default
 								) {
 									operation.responses[statusCode].content[contentType].examples.default =
 										{
@@ -440,32 +440,12 @@ export class SwaggerIntegration {
 		};
 	}
 
-	private basicAuthMiddleware(req: Request, res: Response, next: NextFunction) {
-		const auth = req.headers.authorization;
-
-		if (!auth || !auth.startsWith('Basic ')) {
-			res.setHeader('WWW-Authenticate', 'Basic realm="Swagger Documentation"');
-			res.status(401).send('Authentication required');
-			return;
-		}
-
-		const credentials = Buffer.from(auth.substring(6), 'base64').toString();
-		const [username, password] = credentials.split(':');
-
-		if (
-			username === this.options.basicAuth?.username &&
-			password === this.options.basicAuth?.password
-		) {
-			next();
-		} else {
-			res.setHeader('WWW-Authenticate', 'Basic realm="Swagger Documentation"');
-			res.status(401).send('Invalid credentials');
-		}
-	}
-
 	public setupSwagger(app: Express) {
 		const authMiddleware = this.options.basicAuth
-			? this.basicAuthMiddleware.bind(this)
+			? createBasicAuthMiddleware(
+					this.options.basicAuth,
+					'Swagger Documentation',
+				)
 			: (_req: Request, _res: Response, next: NextFunction) => next();
 
 		// Swagger UI middleware with optional basic auth

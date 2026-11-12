@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { Express, NextFunction, Request, Response } from 'express';
 import { ISwaggerBasicAuth } from '../interfaces/config.interface';
+import { createBasicAuthMiddleware } from './basic-auth.middleware';
 import {
 	IRequestResponseExample,
 	keyOfPath,
@@ -179,7 +180,10 @@ export class PostmanIntegration {
 
 	public setupPostman(app: Express) {
 		const authMiddleware = this.options.basicAuth
-			? this.basicAuthMiddleware.bind(this)
+			? createBasicAuthMiddleware(
+					this.options.basicAuth,
+					'Postman Documentation',
+				)
 			: (_req: Request, _res: Response, next: NextFunction) => next();
 
 		app.get(this.options.jsonPath!, authMiddleware, (_req, res) => {
@@ -551,28 +555,6 @@ export class PostmanIntegration {
 		return `mini-postman-${Date.now()}`;
 	}
 
-	private basicAuthMiddleware(req: Request, res: Response, next: NextFunction) {
-		const auth = req.headers.authorization;
-
-		if (!auth || !auth.startsWith('Basic ')) {
-			res.setHeader('WWW-Authenticate', 'Basic realm="Postman Documentation"');
-			res.status(401).send('Authentication required');
-			return;
-		}
-
-		const credentials = Buffer.from(auth.substring(6), 'base64').toString();
-		const [username, password] = credentials.split(':');
-
-		if (
-			username === this.options.basicAuth?.username &&
-			password === this.options.basicAuth?.password
-		) {
-			next();
-		} else {
-			res.setHeader('WWW-Authenticate', 'Basic realm="Postman Documentation"');
-			res.status(401).send('Invalid credentials');
-		}
-	}
 }
 
 export default PostmanIntegration;
