@@ -1,12 +1,11 @@
 import 'reflect-metadata';
 import express, { Express, NextFunction, Request, Response } from 'express';
 import { Server } from 'http';
-import cors from 'cors';
-import morgan from 'morgan';
 import { Container, injectable } from 'inversify';
 import { IConfig } from './interfaces/config.interface';
 import { buildApp, IController } from './notations';
 import { setupApiDocumentation } from './api-docs/setup-api-docs';
+import { applyDefaultMiddlewares } from './utils/default-middleware';
 import { MINI_TYPES } from './types';
 import { container } from './container';
 import HttpException from './expections/http.expection';
@@ -110,10 +109,7 @@ export class Mini2AppClass implements IAppV2 {
 	}
 
 	protected setupMiddlewares(): void {
-		this.app.use(express.json());
-		this.app.use(express.urlencoded({ extended: true }));
-		this.app.use(cors());
-		this.app.use(morgan('dev'));
+		applyDefaultMiddlewares(this.app, this.config);
 	}
 
 	protected resolveControllers(): void {

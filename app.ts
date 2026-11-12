@@ -1,12 +1,11 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import { Server } from 'http';
-import cors from 'cors';
-import morgan from 'morgan';
 import { IApp } from './interfaces/app.interface';
 import { IConfig } from './interfaces/config.interface';
 import { buildApp, IController } from './notations';
 import { Container, injectable } from 'inversify';
 import { setupApiDocumentation } from './api-docs/setup-api-docs';
+import { applyDefaultMiddlewares } from './utils/default-middleware';
 import { MINI_TYPES } from './types';
 import { bindDiscovered, container } from './container';
 import HttpException from './expections/http.expection';
@@ -38,10 +37,7 @@ class App implements IApp {
 		this.expressAppInitialize(config);
 	}
 	expressAppInitialize(config: IConfig) {
-		this.app.use(express.json());
-		this.app.use(express.urlencoded({ extended: true }));
-		this.app.use(cors());
-		this.app.use(morgan('dev'));
+		applyDefaultMiddlewares(this.app, config);
 		this.server = this.app.listen(config.port, () => {
 			console.log(`Server is running on port ${config.port}`);
 		});
