@@ -25,6 +25,7 @@ class TestAppV2 extends Mini2AppClass {
 			host: 'localhost',
 			port: TEST_PORT,
 			applicationName: 'App V2 Test',
+			docs: { enabled: true },
 		};
 	}
 
@@ -64,6 +65,7 @@ describe('AppV2 (Mini2App)', () => {
 			host: 'localhost',
 			port: TEST_PORT,
 			applicationName: 'App V2 Test',
+			docs: { enabled: true },
 		});
 	});
 

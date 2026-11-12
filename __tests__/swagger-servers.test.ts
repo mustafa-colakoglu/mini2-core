@@ -14,6 +14,7 @@ describe('Swagger Servers Configuration', () => {
 				host: 'localhost',
 				port: 3002,
 				applicationName: 'Multi-Environment API',
+				docs: { enabled: true },
 				swaggerServers: [
 					{
 						url: 'https://api.production.com',

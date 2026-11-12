@@ -14,6 +14,7 @@ describe('Swagger Pre/Post Scripts', () => {
 				host: 'localhost',
 				port: 3006,
 				applicationName: 'Test Application',
+				docs: { enabled: true },
 			},
 			{
 				autoload: true,

@@ -36,6 +36,7 @@ class ManualStartApp extends Mini2AppClass {
 			host: 'localhost',
 			port: TEST_PORT,
 			applicationName: 'Manual Start App',
+			docs: { enabled: true },
 		};
 	}
 }

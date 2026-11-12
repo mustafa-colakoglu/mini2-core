@@ -15,6 +15,7 @@ beforeAll(async () => {
 			host: 'localhost',
 			port: 3000,
 			applicationName: 'Test Application',
+			docs: { enabled: true },
 		},
 		{
 			autoload: false,

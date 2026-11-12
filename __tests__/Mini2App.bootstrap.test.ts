@@ -18,6 +18,7 @@ class BootstrapApp extends Mini2AppClass {
 			host: 'localhost',
 			port: TEST_PORT,
 			applicationName: 'Bootstrap App',
+			docs: { enabled: true },
 		};
 	}
 }

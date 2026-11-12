@@ -6,8 +6,7 @@ import morgan from 'morgan';
 import { Container, injectable } from 'inversify';
 import { IConfig } from './interfaces/config.interface';
 import { buildApp, IController } from './notations';
-import { SwaggerIntegration } from './api-docs/swagger';
-import { PostmanIntegration } from './api-docs/postman';
+import { setupApiDocumentation } from './api-docs/setup-api-docs';
 import { MINI_TYPES } from './types';
 import { container } from './container';
 import HttpException from './expections/http.expection';
@@ -124,36 +123,7 @@ export class Mini2AppClass implements IAppV2 {
 	}
 
 	protected setupDocs(): void {
-		const config = this.config;
-		const servers = config.swaggerServers ?? [
-			{
-				url: `http://${config.host}:${config.port}`,
-				description: 'Development server',
-			},
-		];
-
-		const swaggerIntegration = new SwaggerIntegration({
-			title: config.applicationName,
-			description: `API documentation for ${config.applicationName}`,
-			version: '1.0.0',
-			servers,
-			docsPath: config.swaggerDocsPath ?? '/api-docs',
-			jsonPath: config.swaggerJsonPath ?? '/api-docs.json',
-			...(config.swaggerBasicAuth && { basicAuth: config.swaggerBasicAuth }),
-		});
-		swaggerIntegration.generateSwaggerSpec(this.controllers);
-		swaggerIntegration.setupSwagger(this.app);
-
-		const postmanIntegration = new PostmanIntegration({
-			title: config.applicationName,
-			description: `API documentation for ${config.applicationName}`,
-			version: '1.0.0',
-			servers,
-			jsonPath: config.postmanJsonPath ?? '/postman.json',
-			...(config.swaggerBasicAuth && { basicAuth: config.swaggerBasicAuth }),
-		});
-		postmanIntegration.generatePostmanCollection(this.controllers);
-		postmanIntegration.setupPostman(this.app);
+		setupApiDocumentation(this.app, this.config, this.controllers);
 	}
 
 	protected setupRoutes(): void {
